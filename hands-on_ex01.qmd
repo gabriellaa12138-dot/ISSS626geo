@@ -1,0 +1,890 @@
+---
+title: "Hands-on Exercise 1: Geospatial Data Wrangling and Choropleth Mapping with R"
+execute:
+  echo: true
+  warning: false
+  message: false
+format:
+  html:
+    toc: true
+    toc-depth: 3
+---
+
+## Overview
+
+This page combines two Hands-on Exercise 1 topics:
+
+- [Geospatial Data Wrangling with R](https://r4gdsa.netlify.app/chap01.html)
+- [Choropleth Mapping with R](https://r4gdsa.netlify.app/chap02.html)
+
+I followed most of the important demos from the course website. 
+
+## Part 1: Geospatial Data Wrangling with R
+
+This part is about preparing spatial data before analysis. I need to import the data, check the CRS, convert coordinate tables into spatial points, and do simple geoprocessing.
+
+### Load Packages
+
+```{r}
+library(sf)
+library(tidyverse)
+library(tmap)
+library(knitr)
+
+tmap_mode("plot")
+```
+
+### Data Used
+
+```{r}
+data_files <- tibble(
+  data_type = c(
+    "Geospatial",
+    "Geospatial",
+    "Geospatial",
+    "Geospatial",
+    "Aspatial",
+    "Aspatial"
+  ),
+  file = c(
+    "Master Plan 2014 Subzone Boundary (No Sea)",
+    "Master Plan 2019 Subzone Boundary (No Sea)",
+    "Cycling Path Network",
+    "Pre-Schools Location",
+    "Inside Airbnb listings",
+    "Singapore resident population by subzone and age"
+  ),
+  path = c(
+    "data/geospatial/master_plan_2014_subzone_no_sea.geojson",
+    "data/geospatial/master_plan_2019_subzone_no_sea.geojson",
+    "data/geospatial/cycling_path_network.geojson",
+    "data/geospatial/pre_schools_location.geojson",
+    "data/aspatial/listings.csv",
+    "data/aspatial/respop_subzone_age_sex_2020.csv"
+  )
+)
+
+kable(data_files)
+```
+
+### Import Geospatial Data
+
+```{r}
+mpsz_raw <- st_read(
+  "data/geospatial/master_plan_2014_subzone_no_sea.geojson",
+  quiet = TRUE
+)
+
+cyclingpath_raw <- st_read(
+  "data/geospatial/cycling_path_network.geojson",
+  quiet = TRUE
+)
+
+preschool_raw <- st_read(
+  "data/geospatial/pre_schools_location.geojson",
+  quiet = TRUE
+)
+```
+
+```{r}
+raw_summary <- tibble(
+  layer = c("mpsz_raw", "cyclingpath_raw", "preschool_raw"),
+  features = c(nrow(mpsz_raw), nrow(cyclingpath_raw), nrow(preschool_raw)),
+  geometry_type = c(
+    paste(unique(st_geometry_type(mpsz_raw)), collapse = ", "),
+    paste(unique(st_geometry_type(cyclingpath_raw)), collapse = ", "),
+    paste(unique(st_geometry_type(preschool_raw)), collapse = ", ")
+  ),
+  epsg = c(
+    st_crs(mpsz_raw)$epsg,
+    st_crs(cyclingpath_raw)$epsg,
+    st_crs(preschool_raw)$epsg
+  )
+)
+
+kable(raw_summary)
+```
+
+The GeoJSON files are read as `sf` objects. At this stage, the coordinates are still in longitude and latitude.
+
+### Transform Projection
+
+```{r}
+mpsz <- st_transform(mpsz_raw, crs = 3414)
+cyclingpath <- st_transform(cyclingpath_raw, crs = 3414)
+preschool <- st_transform(preschool_raw, crs = 3414)
+```
+
+```{r}
+projected_summary <- tibble(
+  layer = c("mpsz", "cyclingpath", "preschool"),
+  epsg = c(st_crs(mpsz)$epsg, st_crs(cyclingpath)$epsg, st_crs(preschool)$epsg),
+  crs_name = c(st_crs(mpsz)$Name, st_crs(cyclingpath)$Name, st_crs(preschool)$Name)
+)
+
+kable(projected_summary)
+```
+
+The course uses SVY21 / Singapore TM. It is more suitable for Singapore distance and area work because the units are metres.
+
+### Examine Simple Feature Data
+
+```{r}
+st_geometry(mpsz)[1:2]
+```
+
+```{r}
+glimpse(st_drop_geometry(mpsz))
+```
+
+```{r}
+mpsz %>%
+  st_drop_geometry() %>%
+  select(SUBZONE_N, PLN_AREA_N, REGION_N, SHAPE_1.AREA) %>%
+  head(8) %>%
+  kable()
+```
+
+An `sf` data frame is still a data frame. The special part is the geometry column. This makes it easy to use `dplyr` and spatial functions together.
+
+### Quick Plot with Base R
+
+```{r, fig.width=7, fig.height=6}
+plot(st_geometry(mpsz))
+```
+
+```{r, fig.width=7, fig.height=6}
+plot(mpsz["PLN_AREA_N"])
+```
+
+The first plot only shows geometry. The second plot colours the polygons by planning area. This is good for a quick check.
+
+### Plot Multiple Layers Together
+
+```{r, fig.width=7, fig.height=6}
+plot(st_geometry(mpsz), border = "grey70")
+plot(st_geometry(preschool), add = TRUE, pch = 20, col = "red", cex = 0.35)
+```
+
+The pre-school points now sit on top of the planning subzones. This tells me the projection is working.
+
+### A Cleaner ggplot View
+
+```{r, fig.width=8, fig.height=7}
+ggplot() +
+  geom_sf(data = mpsz, fill = "grey96", color = "grey65", linewidth = 0.12) +
+  geom_sf(data = cyclingpath, color = "#2c7fb8", linewidth = 0.25, alpha = 0.65) +
+  geom_sf(data = preschool, color = "#de2d26", size = 0.25, alpha = 0.45) +
+  coord_sf() +
+  labs(
+    title = "Planning Subzones, Cycling Paths, and Pre-Schools",
+    subtitle = "The layers align after CRS transformation",
+    caption = "Data: data.gov.sg and LTA DataMall"
+  ) +
+  theme_minimal()
+```
+
+This plot is just a visual check. I use it to see whether points, lines, and polygons are in the correct place.
+
+### Import Aspatial Airbnb Data
+
+```{r}
+listings <- read_csv("data/aspatial/listings.csv", show_col_types = FALSE)
+
+list(listings)
+```
+
+The Airbnb file is not a geospatial file. But it has longitude and latitude columns, so I can convert it into a point layer.
+
+### Convert Aspatial Data to sf
+
+```{r}
+listings_sf <- st_as_sf(
+  listings,
+  coords = c("longitude", "latitude"),
+  crs = 4326
+) %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+glimpse(listings_sf)
+```
+
+```{r}
+tibble(
+  rows_before = nrow(listings),
+  rows_after = nrow(listings_sf),
+  epsg = st_crs(listings_sf)$epsg
+) %>%
+  kable()
+```
+
+The new `geometry` column stores each Airbnb listing as a point. After this step, I can use it like other spatial data.
+
+### Plot Airbnb Listings on Subzones
+
+```{r, fig.width=7, fig.height=6}
+plot(st_geometry(mpsz), border = "grey75")
+plot(st_geometry(listings_sf), add = TRUE, pch = 20, col = "#2171b5", cex = 0.35)
+```
+
+This follows the DIY idea from the course page. It is a quick way to check if the converted points look correct.
+
+### Geoprocessing Use Case 1: Cycling Path Buffer
+
+```{r}
+buffer_cycling <- st_buffer(
+  cyclingpath,
+  dist = 5,
+  nQuadSegs = 30
+)
+```
+
+```{r}
+buffer_cycling <- buffer_cycling %>%
+  mutate(AREA = st_area(geometry))
+
+sum(buffer_cycling$AREA)
+```
+
+The buffer shows the land around the cycling paths. The distance is 5 metres, same as the demo idea in the course notes.
+
+### Clip Buffer by One Subzone
+
+```{r}
+mpsz_selected <- mpsz %>%
+  filter(SUBZONE_N == "TAMPINES WEST")
+
+buffer_cycling_selected <- st_intersection(
+  buffer_cycling,
+  mpsz_selected
+) %>%
+  mutate(CLIPPED_AREA = st_area(geometry))
+```
+
+```{r}
+tibble(
+  selected_subzone = mpsz_selected$SUBZONE_N,
+  number_of_buffer_parts = nrow(buffer_cycling_selected),
+  clipped_area_sqm = as.numeric(sum(buffer_cycling_selected$CLIPPED_AREA)),
+  clipped_area_sqkm = as.numeric(sum(buffer_cycling_selected$CLIPPED_AREA)) / 1000000
+) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>%
+  kable()
+```
+
+```{r, fig.width=7, fig.height=6}
+plot(st_geometry(mpsz_selected), col = "grey92", border = "grey40")
+plot(st_geometry(buffer_cycling_selected), add = TRUE, col = "#9ecae1", border = NA)
+plot(st_geometry(cyclingpath), add = TRUE, col = "#08519c", lwd = 0.7)
+```
+
+`st_intersection()` keeps only the part of the buffer inside Tampines West. This is useful when the question is focused on one area.
+
+### Geoprocessing Use Case 2: Count Pre-Schools by Subzone
+
+```{r}
+mpsz$`PreSch Count` <- lengths(st_intersects(mpsz, preschool))
+```
+
+```{r}
+summary(mpsz$`PreSch Count`)
+```
+
+```{r}
+mpsz %>%
+  slice_max(`PreSch Count`, n = 5) %>%
+  st_drop_geometry() %>%
+  select(SUBZONE_N, PLN_AREA_N, REGION_N, `PreSch Count`) %>%
+  kable()
+```
+
+The `st_intersects()` result tells which pre-school points fall inside each polygon. `lengths()` turns that list into a count.
+
+### Derive Area and Density
+
+```{r}
+mpsz <- mpsz %>%
+  mutate(
+    Area = st_area(geometry),
+    `PreSch Density` = `PreSch Count` / as.numeric(Area) * 1000000
+  )
+```
+
+```{r}
+summary(mpsz$`PreSch Density`)
+```
+
+Density is better than raw count for comparison. A small subzone and a large subzone can have the same count, but the meaning is not the same.
+
+### Histogram of Pre-School Density
+
+```{r, fig.width=7, fig.height=5}
+hist(
+  mpsz$`PreSch Density`,
+  main = "Distribution of Pre-School Density",
+  xlab = "Pre-schools per square kilometre",
+  col = "#9ecae1",
+  border = "white"
+)
+```
+
+```{r, fig.width=8, fig.height=5}
+mpsz %>%
+  st_drop_geometry() %>%
+  ggplot(aes(x = `PreSch Density`)) +
+  geom_histogram(bins = 30, fill = "#3182bd", color = "white") +
+  labs(
+    title = "Distribution of Pre-School Density",
+    x = "Pre-schools per square kilometre",
+    y = "Number of subzones"
+  ) +
+  theme_minimal()
+```
+
+The histogram shows that many subzones have low density. A few compact residential areas have much higher density.
+
+### Map Pre-School Density
+
+```{r, fig.width=8, fig.height=7}
+ggplot(mpsz) +
+  geom_sf(aes(fill = `PreSch Density`), color = "white", linewidth = 0.08) +
+  scale_fill_viridis_c(option = "C", na.value = "grey90") +
+  labs(
+    title = "Pre-School Density by Planning Subzone",
+    subtitle = "Number of pre-schools per square kilometre",
+    fill = "Centres\nper sq km"
+  ) +
+  theme_minimal()
+```
+
+This map is not from `tmap`, but it helps me check the derived variable before using it in later analysis.
+
+## Part 2: Choropleth Mapping with R
+
+This part is about turning data into thematic maps. I use dependency ratio as the mapping variable.
+
+### Import Mapping and Population Data
+
+```{r}
+mpsz2019 <- st_read(
+  "data/geospatial/master_plan_2019_subzone_no_sea.geojson",
+  quiet = TRUE
+) %>%
+  st_transform(3414)
+
+clean_count <- function(x) {
+  parse_number(na_if(as.character(x), "-"))
+}
+
+pop_raw <- read_csv(
+  "data/aspatial/respop_subzone_age_sex_2020.csv",
+  show_col_types = FALSE
+) %>%
+  mutate(across(starts_with("Total_"), clean_count))
+```
+
+```{r}
+tibble(
+  layer = c("Master Plan 2019 subzones", "Census 2020 population table"),
+  records = c(nrow(mpsz2019), nrow(pop_raw)),
+  columns = c(ncol(mpsz2019), ncol(pop_raw))
+) %>%
+  kable()
+```
+
+The course website uses a population table and a subzone layer. I use the same idea here with the downloaded local files.
+
+### Prepare Dependency Ratio
+
+```{r}
+pop2020 <- pop_raw %>%
+  filter(Number != "Total", !str_detect(Number, " - Total$")) %>%
+  transmute(
+    SUBZONE_N = str_to_upper(Number),
+    YOUNG = Total_0_4 + Total_5_9 + Total_10_14,
+    ECONOMY_ACTIVE = Total_15_19 + Total_20_24 + Total_25_29 +
+      Total_30_34 + Total_35_39 + Total_40_44 + Total_45_49 +
+      Total_50_54 + Total_55_59 + Total_60_64,
+    AGED = Total_65_69 + Total_70_74 + Total_75_79 +
+      Total_80_84 + Total_85_89 + Total_90andOver,
+    TOTAL = Total_Total,
+    DEPENDENCY = round((YOUNG + AGED) / ECONOMY_ACTIVE, 4)
+  ) %>%
+  filter(!is.na(ECONOMY_ACTIVE), ECONOMY_ACTIVE > 0)
+```
+
+```{r}
+pop2020 %>%
+  head(10) %>%
+  kable()
+```
+
+I keep `DEPENDENCY` as a ratio. This makes the map legend closer to the course demo.
+
+### Join Population Data to Subzone Polygons
+
+```{r}
+mpsz_pop2020 <- mpsz2019 %>%
+  left_join(pop2020, by = "SUBZONE_N")
+```
+
+```{r}
+join_summary <- tibble(
+  subzones = nrow(mpsz_pop2020),
+  matched_subzones = sum(!is.na(mpsz_pop2020$DEPENDENCY)),
+  unmatched_subzones = sum(is.na(mpsz_pop2020$DEPENDENCY))
+)
+
+kable(join_summary)
+```
+
+```{r}
+mpsz_pop2020 %>%
+  st_drop_geometry() %>%
+  select(SUBZONE_N, PLN_AREA_N, REGION_N, TOTAL, YOUNG, ECONOMY_ACTIVE, AGED, DEPENDENCY) %>%
+  arrange(desc(DEPENDENCY)) %>%
+  slice_head(n = 10) %>%
+  kable()
+```
+
+Some subzones are unmatched. This is normal because not every planning subzone is a residential area.
+
+### Quick Choropleth with qtm
+
+```{r, fig.width=8, fig.height=7}
+qtm(mpsz_pop2020, fill = "DEPENDENCY")
+```
+
+`qtm()` is useful for a fast map. I use it when I only need a quick first look.
+
+### Choropleth with tm_shape and tm_polygons
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(fill = "DEPENDENCY")
+```
+
+This is the basic `tmap` structure. `tm_shape()` gives the spatial object. `tm_polygons()` draws the polygons.
+
+### Use tm_fill and tm_borders
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_fill("DEPENDENCY")
+```
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_fill("DEPENDENCY") +
+  tm_borders()
+```
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_fill("DEPENDENCY") +
+  tm_borders(
+    col = "grey60",
+    lwd = 0.1,
+    lty = "dashed"
+  )
+```
+
+`tm_polygons()` is a shortcut for fill plus borders. I like the shortcut, but separating them helps me control the border style.
+
+### Built-In Classification Methods
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      n = 5
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "equal",
+      n = 5
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "kmeans",
+      n = 5
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+Different classification methods can make the same data look different. This is why map classification is a design choice, not just a technical setting.
+
+### Custom Breaks
+
+```{r}
+summary(mpsz_pop2020$DEPENDENCY)
+```
+
+```{r, fig.width=8, fig.height=7}
+dependency_breaks <- c(0, 0.30, 0.40, 0.50, 0.60, 0.80)
+
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      breaks = dependency_breaks
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+The website uses custom breaks too. I adjusted the break values because my downloaded population table gives a lower range.
+
+### ColourBrewer Palette
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      n = 5,
+      values = "brewer.greens"
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      n = 5,
+      values = "-brewer.greens"
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+The minus sign reverses the colour order. This changes which values get the darkest colour.
+
+### Cartographic Furniture
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      n = 5
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_compass(type = "8star", size = 2) +
+  tm_scalebar() +
+  tm_grid(lwd = 0.1, alpha = 0.2) +
+  tm_credits(
+    "Source: data.gov.sg",
+    position = c("left", "bottom")
+  )
+```
+
+Compass, scale bar, grid, and source note help the map read like a proper map output.
+
+### Map Legend and Layout
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      n = 5
+    ),
+    fill.legend = tm_legend(
+      title = "Dependency ratio"
+    )
+  ) +
+  tm_pos_auto_in() +
+  tm_borders(fill_alpha = 0.5) +
+  tm_compass(type = "8star", size = 2) +
+  tm_scalebar() +
+  tm_grid(lwd = 0.1, alpha = 0.2) +
+  tm_credits(
+    "Source: data.gov.sg",
+    position = c("left", "bottom")
+  )
+```
+
+The legend title makes the mapped variable clearer. This is a small change, but it helps the reader.
+
+### Map Style
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      n = 5,
+      values = "-brewer.greens"
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5) +
+  tmap_style("natural")
+```
+
+```{r}
+tmap_style("white")
+```
+
+The style changes the overall look of the map. I reset it back to white after this demo.
+
+### Small Multiple Maps by Multiple Fill Variables
+
+```{r, fig.width=10, fig.height=6}
+tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = c("YOUNG", "AGED"),
+    fill.legend = tm_legend(
+      position = tm_pos_in("right", "bottom")
+    ),
+    fill.scale = tm_scale_intervals(
+      style = "equal",
+      n = 5,
+      values = "brewer.blues"
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5) +
+  tmap_style("natural")
+```
+
+This creates small multiples from two variables. It is useful when I want to compare young and aged population patterns.
+
+```{r}
+tmap_style("white")
+```
+
+### Small Multiple Maps with tmap_arrange
+
+```{r, fig.width=10, fig.height=6}
+youngmap <- tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "YOUNG",
+    fill.legend = tm_legend(
+      position = tm_pos_in("right", "bottom"),
+      item.height = 0.8
+    ),
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      values = "brewer.blues"
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("Distribution of young population")
+
+agedmap <- tm_shape(mpsz_pop2020) +
+  tm_polygons(
+    fill = "AGED",
+    fill.legend = tm_legend(
+      position = tm_pos_in("right", "bottom"),
+      item.height = 0.8
+    ),
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      values = "brewer.blues"
+    )
+  ) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("Distribution of aged population")
+
+tmap_arrange(youngmap, agedmap, asp = 1, ncol = 2)
+```
+
+This version builds two separate maps first. Then I arrange them side by side.
+
+### Small Multiple Maps with tm_facets
+
+```{r, fig.width=10, fig.height=7}
+tm_shape(mpsz_pop2020) +
+  tm_fill(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      values = "brewer.blues"
+    )
+  ) +
+  tm_facets(
+    by = "REGION_N",
+    nrow = 2,
+    ncols = 3,
+    free.coords = TRUE,
+    drop.units = TRUE
+  ) +
+  tm_layout(
+    legend.show = TRUE,
+    title.position = c("center", "center"),
+    title.size = 20
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+Facets split the map by region. This makes regional comparison easier.
+
+### Select One Region
+
+```{r, fig.width=8, fig.height=6}
+mpsz_pop2020 %>%
+  filter(REGION_N == "CENTRAL REGION") %>%
+  tm_shape() +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      values = "brewer.greens"
+    ),
+    fill.legend = tm_legend()
+  ) +
+  tm_borders(fill_alpha = 0.5)
+```
+
+This map focuses only on the Central Region. It is clearer when the study area is small.
+
+### Add Statistical Chart and Outlier Highlight
+
+```{r, fig.width=8, fig.height=6}
+mpsz_selected <- mpsz_pop2020 %>%
+  filter(REGION_N == "CENTRAL REGION")
+
+mpsz_selected %>%
+  tm_shape() +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      values = "brewer.greens"
+    ),
+    fill.legend = tm_legend(),
+    fill.chart = tm_chart_box()
+  ) +
+  tm_borders() +
+  tm_layout(asp = 0.8)
+```
+
+The box chart gives a quick statistical view beside the map. It helps me see whether the mapped values have unusual cases.
+
+```{r}
+stats <- boxplot.stats(mpsz_selected$DEPENDENCY)
+outlier_vals <- stats$out
+
+outlier_vals
+```
+
+```{r}
+outlier_sf <- mpsz_selected[mpsz_selected$DEPENDENCY %in% outlier_vals, ]
+
+outlier_sf %>%
+  st_drop_geometry() %>%
+  select(SUBZONE_N, PLN_AREA_N, REGION_N, DEPENDENCY) %>%
+  kable()
+```
+
+```{r, fig.width=8, fig.height=6}
+tm_shape(mpsz_selected) +
+  tm_polygons(
+    fill = "DEPENDENCY",
+    fill.scale = tm_scale_intervals(
+      style = "quantile",
+      values = "brewer.blues"
+    ),
+    fill.legend = tm_legend(),
+    fill.chart = tm_chart_box()
+  ) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_shape(outlier_sf) +
+  tm_borders(col = "red", lwd = 2) +
+  tm_text("SUBZONE_N", col = "red", size = 0.7) +
+  tm_layout(asp = 0.8)
+```
+
+The red border highlights outliers. This makes the statistical result visible on the map.
+
+### Interactive Map
+
+```{r}
+region_selected <- mpsz_pop2020 %>%
+  filter(REGION_N == "CENTRAL REGION")
+
+region_bbox <- st_bbox(region_selected)
+
+stats <- boxplot.stats(region_selected$DEPENDENCY)
+outlier_vals <- stats$out
+outlier_sf <- region_selected[region_selected$DEPENDENCY %in% outlier_vals, ]
+```
+
+```{r, fig.width=9, fig.height=6}
+tmap_mode("view")
+
+tm_shape(
+  region_selected,
+  bbox = region_bbox
+) +
+  tm_fill(
+    "DEPENDENCY",
+    id = "SUBZONE_N",
+    popup.vars = c(
+      "Name" = "SUBZONE_N",
+      "Dependency" = "DEPENDENCY"
+    )
+  ) +
+  tm_borders() +
+  tm_shape(outlier_sf) +
+  tm_borders(col = "red", lwd = 2)
+```
+
+This map is interactive. I can zoom, pan, and click a subzone to see the popup information.
+
+```{r, fig.width=9, fig.height=6}
+tm_shape(
+  region_selected,
+  bbox = region_bbox
+) +
+  tm_fill(
+    "DEPENDENCY",
+    id = "SUBZONE_N",
+    popup.vars = c(
+      "Name" = "SUBZONE_N",
+      "Dependency" = "DEPENDENCY"
+    )
+  ) +
+  tm_borders() +
+  tm_shape(outlier_sf) +
+  tm_borders(col = "red", lwd = 2) +
+  tm_view(set_zoom_limits = c(12, 14))
+```
+
+The zoom limit keeps the reader near the study area. This makes the interactive map easier to control.
+
+```{r}
+tmap_mode("plot")
+```
+
+## Final Reflection
+
+This hands-on exercise shows the full flow from raw data to maps. First, I prepare the spatial data and check the CRS. Then I create useful variables such as buffer area, pre-school density, and dependency ratio. Finally, I use different tmap options to show how map design can change the way a pattern is read.

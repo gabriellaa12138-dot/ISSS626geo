@@ -2,11 +2,13 @@ project:
   type: website
 
 website:
-  title: "ISSS608-VAA"
+  title: "ISSS626geo"
   navbar:
     left:
       - href: index.qmd
         text: Home
+      - href: hands-on_ex01.qmd
+        text: Hands-on 1
       - about.qmd
 
 format:
@@ -18,4 +20,3 @@ format:
     toc: true
 
 editor: visual
-

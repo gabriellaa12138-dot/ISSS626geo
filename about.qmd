@@ -2,8 +2,4 @@
 title: "About"
 ---
 
-About this site
-
-```{r}
-1 + 1
-```
+This site is prepared for documenting ISSS626 hands-on exercises. The examples use R, `sf`, `tidyverse`, and `tmap` to practise geospatial data wrangling and thematic mapping.

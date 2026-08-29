@@ -1,11 +1,9 @@
 ---
-title: "ISSS608-VAA"
+title: "ISSS626geo"
 ---
 
-This is a Quarto website.
+This website records the hands-on exercises for ISSS626 Geospatial Data Science and Analytics.
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+## Hands-on Exercises
 
-```{r}
-1 + 1
-```
+- [Hands-on Exercise 1: Geospatial Data Wrangling and Choropleth Mapping with R](hands-on_ex01.qmd)

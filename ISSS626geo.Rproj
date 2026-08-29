@@ -1,4 +1,5 @@
 Version: 1.0
+VersionControl: Git
 
 RestoreWorkspace: Default
 SaveWorkspace: Default
