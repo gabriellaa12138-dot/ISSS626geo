@@ -14,10 +14,10 @@ format:
 
 This page combines two Hands-on Exercise 1 topics:
 
-- [Geospatial Data Wrangling with R](https://r4gdsa.netlify.app/chap01.html)
-- [Choropleth Mapping with R](https://r4gdsa.netlify.app/chap02.html)
+-   [Geospatial Data Wrangling with R](https://r4gdsa.netlify.app/chap01.html)
+-   [Choropleth Mapping with R](https://r4gdsa.netlify.app/chap02.html)
 
-I followed most of the important demos from the course website. 
+I followed most of the important demos from the course website.
 
 ## Part 1: Geospatial Data Wrangling with R
 

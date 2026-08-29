@@ -6,4 +6,4 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 
 ## Hands-on Exercises
 
-- [Hands-on Exercise 1: Geospatial Data Wrangling and Choropleth Mapping with R](hands-on_ex01.qmd)
+-   [Hands-on Exercise 1: Geospatial Data Wrangling and Choropleth Mapping with R](hands-on_ex01.qmd)
