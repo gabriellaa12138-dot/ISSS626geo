@@ -53,14 +53,14 @@
     "href": "hands-on_ex02.html",
     "title": "Hands-on Exercise 2: Spatial Point Pattern Analysis",
     "section": "",
-    "text": "This page combines two Hands-on Exercise 2 topics:\n\nFirst-order Spatial Point Patterns Analysis Methods\n2nd Order Spatial Point Patterns Analysis Methods\n\nThe two chapters use the same child care point data. Chapter 4 focuses on where the points are dense. Chapter 5 checks whether the points are spatially random or show interaction at different distances.\n\n\n\n\n\n\nNote\n\n\n\nThe course examples use KML files. I use the downloaded GeoJSON files in this project. The important step is the same: both layers are transformed to EPSG:3414 before distance analysis."
+    "text": "This page combines two Hands-on Exercise 2 topics:\n\nFirst-order Spatial Point Patterns Analysis Methods\n2nd Order Spatial Point Patterns Analysis Methods\n\nThe two chapters use the same child care point data. Chapter 4 focuses on where the points are dense. Chapter 5 checks whether the points are spatially random or show interaction at different distances."
   },
   {
     "objectID": "hands-on_ex02.html#overview",
     "href": "hands-on_ex02.html#overview",
     "title": "Hands-on Exercise 2: Spatial Point Pattern Analysis",
     "section": "",
-    "text": "This page combines two Hands-on Exercise 2 topics:\n\nFirst-order Spatial Point Patterns Analysis Methods\n2nd Order Spatial Point Patterns Analysis Methods\n\nThe two chapters use the same child care point data. Chapter 4 focuses on where the points are dense. Chapter 5 checks whether the points are spatially random or show interaction at different distances.\n\n\n\n\n\n\nNote\n\n\n\nThe course examples use KML files. I use the downloaded GeoJSON files in this project. The important step is the same: both layers are transformed to EPSG:3414 before distance analysis."
+    "text": "This page combines two Hands-on Exercise 2 topics:\n\nFirst-order Spatial Point Patterns Analysis Methods\n2nd Order Spatial Point Patterns Analysis Methods\n\nThe two chapters use the same child care point data. Chapter 4 focuses on where the points are dense. Chapter 5 checks whether the points are spatially random or show interaction at different distances."
   },
   {
     "objectID": "hands-on_ex02.html#getting-started",
