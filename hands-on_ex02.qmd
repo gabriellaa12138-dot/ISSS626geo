@@ -51,7 +51,7 @@ tibble(
 
 These packages cover the full workflow. `sf` handles vector data, `spatstat` handles point pattern analysis, and `tmap` is used for map output.
 
-### Data Used
+### Data Preparation
 
 ```{r}
 data_used <- tibble(
