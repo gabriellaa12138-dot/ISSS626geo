@@ -8,3 +8,4 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 
 -   [Hands-on Exercise 1: Geospatial Data Wrangling and Choropleth Mapping with R](hands-on_ex01.qmd)
 -   [Hands-on Exercise 2: Spatial Point Pattern Analysis](hands-on_ex02.qmd)
+-   [Hands-on Exercise 3: Spatio-Temporal Point Patterns Analysis](hands-on_ex03.qmd)

@@ -13,6 +13,8 @@ website:
             text: Hands-on 1
           - href: hands-on_ex02.qmd
             text: Hands-on 2
+          - href: hands-on_ex03.qmd
+            text: Hands-on 3
       - href: about.qmd
         text: About
 
