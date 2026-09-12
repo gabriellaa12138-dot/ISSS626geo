@@ -24,8 +24,6 @@ The workflow is:
 -   construct fixed-distance, adaptive-distance and inverse-distance weights; and
 -   calculate spatially lagged GDPPC values.
 
-The code below keeps the Chapter 8 structure and variable names. Only the local project paths use `data/...` instead of the course website path `chap08/data/...`.
-
 ## The Study Area and Data
 
 The study area is Hunan Province in China. The boundary layer contains 88 county-level polygons. The CSV file contains 2012 local development indicators for the same counties.
