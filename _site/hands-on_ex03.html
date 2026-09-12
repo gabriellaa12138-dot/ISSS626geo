@@ -198,13 +198,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#part-5-stkde-by-day-of-year" id="toc-part-5-stkde-by-day-of-year" class="nav-link" data-scroll-target="#part-5-stkde-by-day-of-year">Part 5: STKDE by Day of Year</a>
   <ul class="collapse">
+  <li><a href="#chapter-6-code" id="toc-chapter-6-code" class="nav-link" data-scroll-target="#chapter-6-code">Chapter 6 Code</a></li>
   <li><a href="#temporal-weighted-kde-function" id="toc-temporal-weighted-kde-function" class="nav-link" data-scroll-target="#temporal-weighted-kde-function">Temporal Weighted KDE Function</a></li>
   <li><a href="#plot-day-of-year-kde-slices" id="toc-plot-day-of-year-kde-slices" class="nav-link" data-scroll-target="#plot-day-of-year-kde-slices">Plot Day-of-Year KDE Slices</a></li>
   </ul></li>
-  <li><a href="#part-6-simple-space-time-interaction-check" id="toc-part-6-simple-space-time-interaction-check" class="nav-link" data-scroll-target="#part-6-simple-space-time-interaction-check">Part 6: Simple Space-Time Interaction Check</a>
+  <li><a href="#part-6-stkde-by-day-of-year-improved-method" id="toc-part-6-stkde-by-day-of-year-improved-method" class="nav-link" data-scroll-target="#part-6-stkde-by-day-of-year-improved-method">Part 6: STKDE by Day of Year: Improved Method</a>
   <ul class="collapse">
-  <li><a href="#pair-distance-summary" id="toc-pair-distance-summary" class="nav-link" data-scroll-target="#pair-distance-summary">Pair Distance Summary</a></li>
+  <li><a href="#chapter-6-code-1" id="toc-chapter-6-code-1" class="nav-link" data-scroll-target="#chapter-6-code-1">Chapter 6 Code</a></li>
+  <li><a href="#improved-bandwidth-values" id="toc-improved-bandwidth-values" class="nav-link" data-scroll-target="#improved-bandwidth-values">Improved Bandwidth Values</a></li>
+  <li><a href="#improved-day-of-year-kde" id="toc-improved-day-of-year-kde" class="nav-link" data-scroll-target="#improved-day-of-year-kde">Improved Day-of-Year KDE</a></li>
+  </ul></li>
+  <li><a href="#part-7-spatio-temporal-point-patterns-analysis-stpp-methods" id="toc-part-7-spatio-temporal-point-patterns-analysis-stpp-methods" class="nav-link" data-scroll-target="#part-7-spatio-temporal-point-patterns-analysis-stpp-methods">Part 7: Spatio-Temporal Point Patterns Analysis: stpp Methods</a>
+  <ul class="collapse">
+  <li><a href="#preparing-the-stpp-data-frame" id="toc-preparing-the-stpp-data-frame" class="nav-link" data-scroll-target="#preparing-the-stpp-data-frame">Preparing the stpp Data Frame</a></li>
+  <li><a href="#chapter-6-stpp-code" id="toc-chapter-6-stpp-code" class="nav-link" data-scroll-target="#chapter-6-stpp-code">Chapter 6 stpp Code</a></li>
+  <li><a href="#visualising-the-space-time-points" id="toc-visualising-the-space-time-points" class="nav-link" data-scroll-target="#visualising-the-space-time-points">Visualising the Space-Time Points</a></li>
+  <li><a href="#space-time-k-function-idea" id="toc-space-time-k-function-idea" class="nav-link" data-scroll-target="#space-time-k-function-idea">Space-Time K-Function Idea</a></li>
+  <li><a href="#space-time-k-surface" id="toc-space-time-k-surface" class="nav-link" data-scroll-target="#space-time-k-surface">Space-Time K Surface</a></li>
   <li><a href="#space-time-distance-plot" id="toc-space-time-distance-plot" class="nav-link" data-scroll-target="#space-time-distance-plot">Space-Time Distance Plot</a></li>
+  <li><a href="#guide-to-interpret-the-plot" id="toc-guide-to-interpret-the-plot" class="nav-link" data-scroll-target="#guide-to-interpret-the-plot">Guide to Interpret the Plot</a></li>
   </ul></li>
   <li><a href="#final-reflection" id="toc-final-reflection" class="nav-link" data-scroll-target="#final-reflection">Final Reflection</a></li>
   </ul>
@@ -251,7 +263,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The full chapter uses <code>sparr::spattemp.density()</code> and <code>stpp</code>. For this submission, I use a lighter <code>spatstat</code> workflow so the page can render reliably. The idea is the same: combine point locations with their event time.</p>
+<p>This report follows the Chapter 6 workflow. I keep the same main code structure and bandwidth choices. The data is smaller because I only focus on Bangka Belitung. Some <code>sparr</code> and <code>stpp</code> chunks are shown as the course code, while the rendered output uses matching <code>spatstat</code> code because those two packages cannot load on this Mac without XQuartz.</p>
 </div>
 </div>
 </section>
@@ -929,67 +941,88 @@ enclosing rectangle: [505555.1, 623191.5] x [9646188, 9739150] units</code></pre
 </section>
 <section id="part-5-stkde-by-day-of-year" class="level2">
 <h2 class="anchored" data-anchor-id="part-5-stkde-by-day-of-year">Part 5: STKDE by Day of Year</h2>
-<p>Month is useful, but it is also coarse. I use day-of-year and a temporal weighting idea to create a few smoother time slices.</p>
+<p>This part follows Chapter 6.9. Month is useful, but it is also coarse. Day-of-year keeps the timing of each fire event more clearly.</p>
+<section id="chapter-6-code" class="level3">
+<h3 class="anchored" data-anchor-id="chapter-6-code">Chapter 6 Code</h3>
+<p>The course code creates a <code>ppp</code> object with <code>DayofYear</code>, adds the study window, then runs <code>spattemp.density()</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>fire_yday_ppp <span class="ot">&lt;-</span> fire_sf <span class="sc">%&gt;%</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(DayofYear) <span class="sc">%&gt;%</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.ppp</span>()</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>fire_yday_owin <span class="ot">&lt;-</span> fire_yday_ppp[kbb_owin]</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fire_yday_owin)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>kde_yday <span class="ot">&lt;-</span> <span class="fu">spattemp.density</span>(</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>  fire_yday_owin)</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(kde_yday)</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(kde_yday)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>I already created <code>fire_yday_owin</code> above. The next chunk uses the same idea and produces a few selected day-of-year density slices.</p>
+</section>
 <section id="temporal-weighted-kde-function" class="level3">
 <h3 class="anchored" data-anchor-id="temporal-weighted-kde-function">Temporal Weighted KDE Function</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>st_kde_slice <span class="ot">&lt;-</span> <span class="cf">function</span>(target_day, <span class="at">lambda_days =</span> <span class="dv">14</span>, <span class="at">sigma =</span> space_bandwidth) {</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  temporal_weights <span class="ot">&lt;-</span> <span class="fu">dnorm</span>(</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">marks</span>(fire_yday_owin) <span class="sc">-</span> target_day) <span class="sc">/</span> lambda_days</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">density</span>(</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">unmark</span>(fire_yday_owin),</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">sigma =</span> sigma,</span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights =</span> temporal_weights,</span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">edge =</span> <span class="cn">TRUE</span></span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>st_kde_slice <span class="ot">&lt;-</span> <span class="cf">function</span>(target_day, <span class="at">lambda_days =</span> <span class="dv">14</span>, <span class="at">sigma =</span> space_bandwidth) {</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  temporal_weights <span class="ot">&lt;-</span> <span class="fu">dnorm</span>(</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">marks</span>(fire_yday_owin) <span class="sc">-</span> target_day) <span class="sc">/</span> lambda_days</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">density</span>(</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">unmark</span>(fire_yday_owin),</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">sigma =</span> sigma,</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights =</span> temporal_weights,</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">edge =</span> <span class="cn">TRUE</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The spatial bandwidth is 15 km. The temporal bandwidth is 14 days. So each output surface is mainly influenced by fires near the selected date.</p>
 </section>
 <section id="plot-day-of-year-kde-slices" class="level3">
 <h3 class="anchored" data-anchor-id="plot-day-of-year-kde-slices">Plot Day-of-Year KDE Slices</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>target_dates <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(<span class="fu">c</span>(</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-09-01"</span>,</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-10-01"</span>,</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-11-01"</span>,</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-12-01"</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>))</span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>target_days <span class="ot">&lt;-</span> <span class="fu">yday</span>(target_dates)</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>day_kde_list <span class="ot">&lt;-</span> <span class="fu">map</span>(target_days, st_kde_slice)</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(day_kde_list) <span class="ot">&lt;-</span> <span class="fu">format</span>(target_dates, <span class="st">"%d %b"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>target_dates <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(<span class="fu">c</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-07-01"</span>,</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-08-01"</span>,</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-09-01"</span>,</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-10-01"</span>,</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-11-01"</span>,</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"2023-12-01"</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>target_days <span class="ot">&lt;-</span> <span class="fu">yday</span>(target_dates)</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>day_kde_list <span class="ot">&lt;-</span> <span class="fu">map</span>(target_days, st_kde_slice)</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(day_kde_list) <span class="ot">&lt;-</span> <span class="fu">format</span>(target_dates, <span class="st">"%d %b"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>old_par <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>))</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (current_date <span class="cf">in</span> <span class="fu">names</span>(day_kde_list)) {</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    day_kde_list[[current_date]],</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="fu">paste</span>(<span class="st">"STKDE slice:"</span>, current_date)</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>old_par <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>))</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (current_date <span class="cf">in</span> <span class="fu">names</span>(day_kde_list)) {</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    day_kde_list[[current_date]],</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="fu">paste</span>(<span class="st">"STKDE slice:"</span>, current_date)</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="hands-on_ex03_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="864"></p>
+<p><img src="hands-on_ex03_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(old_par)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(old_par)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The slices show how the hotspot changes through the peak season. October is the strongest period in this subset.</p>
+<p>The slices show how the hotspot changes through the peak season. September and October are the strongest periods in this subset.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>slice_stats <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">date =</span> <span class="fu">names</span>(day_kde_list),</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">day_of_year =</span> target_days,</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_density =</span> <span class="fu">map_dbl</span>(day_kde_list, <span class="sc">~</span> <span class="fu">max</span>(.x<span class="sc">$</span>v, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">max_density =</span> <span class="fu">signif</span>(max_density, <span class="dv">3</span>))</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(slice_stats)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>slice_stats <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">date =</span> <span class="fu">names</span>(day_kde_list),</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">day_of_year =</span> target_days,</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_density =</span> <span class="fu">map_dbl</span>(day_kde_list, <span class="sc">~</span> <span class="fu">max</span>(.x<span class="sc">$</span>v, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">max_density =</span> <span class="fu">signif</span>(max_density, <span class="dv">3</span>))</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(slice_stats)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -1000,6 +1033,16 @@ enclosing rectangle: [505555.1, 623191.5] x [9646188, 9739150] units</code></pre
 </tr>
 </thead>
 <tbody>
+<tr class="odd">
+<td style="text-align: left;">01 Jul</td>
+<td style="text-align: right;">182</td>
+<td style="text-align: right;">0e+00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">01 Aug</td>
+<td style="text-align: right;">213</td>
+<td style="text-align: right;">0e+00</td>
+</tr>
 <tr class="odd">
 <td style="text-align: left;">01 Sep</td>
 <td style="text-align: right;">244</td>
@@ -1027,37 +1070,267 @@ enclosing rectangle: [505555.1, 623191.5] x [9646188, 9739150] units</code></pre
 <p>This table gives a simple numeric check for the plotted surfaces.</p>
 </section>
 </section>
-<section id="part-6-simple-space-time-interaction-check" class="level2">
-<h2 class="anchored" data-anchor-id="part-6-simple-space-time-interaction-check">Part 6: Simple Space-Time Interaction Check</h2>
-<p>The full <code>stpp</code> workflow computes a formal space-time K-function. Here I make a simpler check by counting point pairs that are close in both space and time.</p>
-<section id="pair-distance-summary" class="level3">
-<h3 class="anchored" data-anchor-id="pair-distance-summary">Pair Distance Summary</h3>
+<section id="part-6-stkde-by-day-of-year-improved-method" class="level2">
+<h2 class="anchored" data-anchor-id="part-6-stkde-by-day-of-year-improved-method">Part 6: STKDE by Day of Year: Improved Method</h2>
+<p>This part follows Chapter 6.10. The improved method first uses <code>BOOT.spattemp()</code> to select better bandwidth values. The chapter then uses <code>h = 9000</code> and <code>lambda = 19</code>.</p>
+<section id="chapter-6-code-1" class="level3">
+<h3 class="anchored" data-anchor-id="chapter-6-code-1">Chapter 6 Code</h3>
+<p>This is the course code structure for the improved method.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>xy <span class="ot">&lt;-</span> <span class="fu">st_coordinates</span>(fire_sf)</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>day_vec <span class="ot">&lt;-</span> fire_sf<span class="sc">$</span>DayofYear</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>spatial_dist <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">dist</span>(xy)) <span class="sc">/</span> <span class="dv">1000</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>temporal_dist <span class="ot">&lt;-</span> <span class="fu">abs</span>(<span class="fu">outer</span>(day_vec, day_vec, <span class="st">"-"</span>))</span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>upper_index <span class="ot">&lt;-</span> <span class="fu">upper.tri</span>(spatial_dist)</span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>space_pairs_km <span class="ot">&lt;-</span> spatial_dist[upper_index]</span>
-<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>time_pairs_days <span class="ot">&lt;-</span> temporal_dist[upper_index]</span>
-<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>total_pairs <span class="ot">&lt;-</span> <span class="fu">length</span>(space_pairs_km)</span>
-<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>interaction_table <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
-<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">space_km =</span> <span class="fu">c</span>(<span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">20</span>),</span>
-<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_days =</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="dv">14</span>, <span class="dv">30</span>)</span>
-<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
-<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">pair_count =</span> <span class="fu">sum</span>(space_pairs_km <span class="sc">&lt;=</span> space_km <span class="sc">&amp;</span> time_pairs_days <span class="sc">&lt;=</span> time_days),</span>
-<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">pair_share =</span> pair_count <span class="sc">/</span> total_pairs</span>
-<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pair_share =</span> <span class="fu">round</span>(pair_share, <span class="dv">4</span>))</span>
-<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(interaction_table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="fu">BOOT.spattemp</span>(fire_yday_owin)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>kde_yday <span class="ot">&lt;-</span> <span class="fu">spattemp.density</span>(fire_yday_owin,</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>                             <span class="at">h =</span> <span class="dv">9000</span>,</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>                             <span class="at">lambda =</span> <span class="dv">19</span>)</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(kde_yday)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(kde_yday)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="improved-bandwidth-values" class="level3">
+<h3 class="anchored" data-anchor-id="improved-bandwidth-values">Improved Bandwidth Values</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>improved_space_bandwidth <span class="ot">&lt;-</span> <span class="dv">9000</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>improved_lambda_days <span class="ot">&lt;-</span> <span class="dv">19</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>improved_bandwidth <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">spatial_bandwidth_h_m =</span> improved_space_bandwidth,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">temporal_bandwidth_lambda_days =</span> improved_lambda_days</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(improved_bandwidth)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">spatial_bandwidth_h_m</th>
+<th style="text-align: right;">temporal_bandwidth_lambda_days</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">9000</td>
+<td style="text-align: right;">19</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>I use the same bandwidth values from Chapter 6.10. A smaller spatial bandwidth gives a sharper surface. A 19-day temporal bandwidth smooths nearby days together.</p>
+</section>
+<section id="improved-day-of-year-kde" class="level3">
+<h3 class="anchored" data-anchor-id="improved-day-of-year-kde">Improved Day-of-Year KDE</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>improved_kde_list <span class="ot">&lt;-</span> <span class="fu">map</span>(</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  target_days,</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">st_kde_slice</span>(</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">target_day =</span> .x,</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">lambda_days =</span> improved_lambda_days,</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">sigma =</span> improved_space_bandwidth</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(improved_kde_list) <span class="ot">&lt;-</span> <span class="fu">format</span>(target_dates, <span class="st">"%d %b"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>old_par <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>))</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (current_date <span class="cf">in</span> <span class="fu">names</span>(improved_kde_list)) {</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    improved_kde_list[[current_date]],</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="fu">paste</span>(<span class="st">"Improved STKDE:"</span>, current_date)</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hands-on_ex03_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(old_par)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>improved_slice_stats <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">date =</span> <span class="fu">names</span>(improved_kde_list),</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">day_of_year =</span> target_days,</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_density =</span> <span class="fu">map_dbl</span>(improved_kde_list, <span class="sc">~</span> <span class="fu">max</span>(.x<span class="sc">$</span>v, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">max_density =</span> <span class="fu">signif</span>(max_density, <span class="dv">3</span>))</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(improved_slice_stats)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">date</th>
+<th style="text-align: right;">day_of_year</th>
+<th style="text-align: right;">max_density</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">01 Jul</td>
+<td style="text-align: right;">182</td>
+<td style="text-align: right;">0e+00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">01 Aug</td>
+<td style="text-align: right;">213</td>
+<td style="text-align: right;">0e+00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">01 Sep</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: right;">0e+00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">01 Oct</td>
+<td style="text-align: right;">274</td>
+<td style="text-align: right;">2e-07</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">01 Nov</td>
+<td style="text-align: right;">305</td>
+<td style="text-align: right;">1e-07</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">01 Dec</td>
+<td style="text-align: right;">335</td>
+<td style="text-align: right;">0e+00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The improved surface is more detailed because <code>h = 9000</code> is smaller than the earlier 15 km bandwidth.</p>
+</section>
+</section>
+<section id="part-7-spatio-temporal-point-patterns-analysis-stpp-methods" class="level2">
+<h2 class="anchored" data-anchor-id="part-7-spatio-temporal-point-patterns-analysis-stpp-methods">Part 7: Spatio-Temporal Point Patterns Analysis: stpp Methods</h2>
+<p>This part follows Chapter 6.11. The course uses <code>stpp</code> to create a spatio-temporal point object and then computes a space-time K-function.</p>
+<section id="preparing-the-stpp-data-frame" class="level3">
+<h3 class="anchored" data-anchor-id="preparing-the-stpp-data-frame">Preparing the stpp Data Frame</h3>
+<p>The first two steps are almost the same as the chapter code. I extract x-y coordinates and combine them with <code>DayofYear</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>coords <span class="ot">&lt;-</span> <span class="fu">st_coordinates</span>(fire_sf)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>fire_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> coords[, <span class="dv">1</span>],</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> coords[, <span class="dv">2</span>],</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">t =</span> fire_sf<span class="sc">$</span>DayofYear)</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(fire_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         x       y  t
+1 513155.7 9656701 24
+2 563599.2 9694942 68
+3 574427.0 9678211 77
+4 568126.4 9680116 77
+5 561587.3 9694854 81
+6 562598.8 9694710 81</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>fire_df_summary <span class="ot">&lt;-</span> fire_df <span class="sc">%&gt;%</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">points =</span> <span class="fu">n</span>(),</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_day =</span> <span class="fu">min</span>(t),</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_day =</span> <span class="fu">median</span>(t),</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_day =</span> <span class="fu">max</span>(t)</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(fire_df_summary)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">points</th>
+<th style="text-align: right;">min_day</th>
+<th style="text-align: right;">median_day</th>
+<th style="text-align: right;">max_day</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">603</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">280</td>
+<td style="text-align: right;">350</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>This table confirms that the object has location and time. This is the input needed for <code>stpp</code>.</p>
+</section>
+<section id="chapter-6-stpp-code" class="level3">
+<h3 class="anchored" data-anchor-id="chapter-6-stpp-code">Chapter 6 stpp Code</h3>
+<p>The exact course workflow is shown here.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>fire_stpp <span class="ot">&lt;-</span> <span class="fu">as.3dpoints</span>(fire_df)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(fire_stpp)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(fire_stpp)</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>kbb_stik <span class="ot">&lt;-</span> <span class="fu">STIKhat</span>(fire_stpp)</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a><span class="fu">plotK</span>(kbb_stik)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="visualising-the-space-time-points" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-the-space-time-points">Visualising the Space-Time Points</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(fire_df, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">color =</span> t)) <span class="sc">+</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">1</span>, <span class="at">alpha =</span> <span class="fl">0.65</span>) <span class="sc">+</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis_c</span>() <span class="sc">+</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Fire Points Coloured by Day of Year"</span>,</span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Easting (m)"</span>,</span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Northing (m)"</span>,</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Day"</span></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hands-on_ex03_files/figure-html/unnamed-chunk-36-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This plot is a 2D version of the <code>stpp</code> point object. The colour shows the time of each fire event.</p>
+</section>
+<section id="space-time-k-function-idea" class="level3">
+<h3 class="anchored" data-anchor-id="space-time-k-function-idea">Space-Time K-Function Idea</h3>
+<p>The <code>STIKhat()</code> output is used to check whether many events are close in both space and time. I reproduce the same idea by counting point pairs within spatial distance <code>u</code> and temporal distance <code>v</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>xy <span class="ot">&lt;-</span> <span class="fu">st_coordinates</span>(fire_sf)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>day_vec <span class="ot">&lt;-</span> fire_sf<span class="sc">$</span>DayofYear</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>spatial_dist <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">dist</span>(xy)) <span class="sc">/</span> <span class="dv">1000</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>temporal_dist <span class="ot">&lt;-</span> <span class="fu">abs</span>(<span class="fu">outer</span>(day_vec, day_vec, <span class="st">"-"</span>))</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>upper_index <span class="ot">&lt;-</span> <span class="fu">upper.tri</span>(spatial_dist)</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>space_pairs_km <span class="ot">&lt;-</span> spatial_dist[upper_index]</span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>time_pairs_days <span class="ot">&lt;-</span> temporal_dist[upper_index]</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>total_pairs <span class="ot">&lt;-</span> <span class="fu">length</span>(space_pairs_km)</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>interaction_table <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">space_km =</span> <span class="fu">c</span>(<span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">20</span>),</span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_days =</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="dv">14</span>, <span class="dv">30</span>)</span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">pair_count =</span> <span class="fu">sum</span>(space_pairs_km <span class="sc">&lt;=</span> space_km <span class="sc">&amp;</span> time_pairs_days <span class="sc">&lt;=</span> time_days),</span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">pair_share =</span> pair_count <span class="sc">/</span> total_pairs</span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pair_share =</span> <span class="fu">round</span>(pair_share, <span class="dv">4</span>))</span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(interaction_table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -1129,42 +1402,101 @@ enclosing rectangle: [505555.1, 623191.5] x [9646188, 9739150] units</code></pre
 </div>
 <p>If many pairs are close in both space and time, it suggests a clustered space-time process. The share increases when the space and time windows become wider.</p>
 </section>
-<section id="space-time-distance-plot" class="level3">
-<h3 class="anchored" data-anchor-id="space-time-distance-plot">Space-Time Distance Plot</h3>
+<section id="space-time-k-surface" class="level3">
+<h3 class="anchored" data-anchor-id="space-time-k-surface">Space-Time K Surface</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>pair_sample <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">space_km =</span> space_pairs_km,</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_days =</span> time_pairs_days</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>pair_sample_size <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="dv">6000</span>, <span class="fu">nrow</span>(pair_sample))</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>pair_sample <span class="ot">&lt;-</span> <span class="fu">slice_sample</span>(pair_sample, <span class="at">n =</span> pair_sample_size)</span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pair_sample, <span class="fu">aes</span>(<span class="at">x =</span> space_km, <span class="at">y =</span> time_days)) <span class="sc">+</span></span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bin2d</span>(<span class="at">bins =</span> <span class="dv">35</span>) <span class="sc">+</span></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>() <span class="sc">+</span></span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>)) <span class="sc">+</span></span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Sample of Space-Time Pair Distances"</span>,</span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Spatial distance between two fire points (km)"</span>,</span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Temporal distance between two fire points (days)"</span>,</span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Pairs"</span></span>
-<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>u_values <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">5</span>, <span class="dv">60</span>, <span class="at">by =</span> <span class="dv">5</span>)</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>v_values <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">7</span>, <span class="dv">84</span>, <span class="at">by =</span> <span class="dv">7</span>)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>kbb_stik_like <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">u =</span> u_values,</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">v =</span> v_values</span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">pair_share =</span> <span class="fu">sum</span>(space_pairs_km <span class="sc">&lt;=</span> u <span class="sc">&amp;</span> time_pairs_days <span class="sc">&lt;=</span> v) <span class="sc">/</span> total_pairs</span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(kbb_stik_like)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 3
+      u     v pair_share
+  &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt;
+1     5     7     0.0452
+2     5    14     0.0683
+3     5    21     0.0893
+4     5    28     0.0972
+5     5    35     0.104 
+6     5    42     0.107 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(kbb_stik_like, <span class="fu">aes</span>(<span class="at">x =</span> u, <span class="at">y =</span> v, <span class="at">fill =</span> pair_share)) <span class="sc">+</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_contour</span>(<span class="fu">aes</span>(<span class="at">z =</span> pair_share), <span class="at">color =</span> <span class="st">"white"</span>, <span class="at">linewidth =</span> <span class="fl">0.25</span>) <span class="sc">+</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>() <span class="sc">+</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Space-Time Close Pair Surface"</span>,</span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"u: spatial distance threshold (km)"</span>,</span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"v: temporal distance threshold (days)"</span>,</span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Pair share"</span></span>
+<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="hands-on_ex03_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="768"></p>
+<p><img src="hands-on_ex03_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This plot is read like the Chapter 6 <code>plotK()</code> result. High values near small <code>u</code> and small <code>v</code> suggest short-distance and short-time clustering.</p>
+</section>
+<section id="space-time-distance-plot" class="level3">
+<h3 class="anchored" data-anchor-id="space-time-distance-plot">Space-Time Distance Plot</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>pair_sample <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">space_km =</span> space_pairs_km,</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_days =</span> time_pairs_days</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>pair_sample_size <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="dv">6000</span>, <span class="fu">nrow</span>(pair_sample))</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>pair_sample <span class="ot">&lt;-</span> <span class="fu">slice_sample</span>(pair_sample, <span class="at">n =</span> pair_sample_size)</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pair_sample, <span class="fu">aes</span>(<span class="at">x =</span> space_km, <span class="at">y =</span> time_days)) <span class="sc">+</span></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bin2d</span>(<span class="at">bins =</span> <span class="dv">35</span>) <span class="sc">+</span></span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>() <span class="sc">+</span></span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>)) <span class="sc">+</span></span>
+<span id="cb50-13"><a href="#cb50-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb50-14"><a href="#cb50-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Sample of Space-Time Pair Distances"</span>,</span>
+<span id="cb50-15"><a href="#cb50-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Spatial distance between two fire points (km)"</span>,</span>
+<span id="cb50-16"><a href="#cb50-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Temporal distance between two fire points (days)"</span>,</span>
+<span id="cb50-17"><a href="#cb50-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Pairs"</span></span>
+<span id="cb50-18"><a href="#cb50-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb50-19"><a href="#cb50-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hands-on_ex03_files/figure-html/unnamed-chunk-40-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>The lower-left part of the plot represents fire pairs that are close in both space and time. This supports the idea of space-time clustering during the fire season.</p>
 </section>
+<section id="guide-to-interpret-the-plot" class="level3">
+<h3 class="anchored" data-anchor-id="guide-to-interpret-the-plot">Guide to Interpret the Plot</h3>
+<ul>
+<li>High values near small <code>u</code> and small <code>v</code> suggest clustering at short spatial and temporal distances.</li>
+<li>Low or flat values suggest a more random pattern.</li>
+<li>The surface changes show how quickly clustering weakens when distance or time becomes larger.</li>
+</ul>
+</section>
 </section>
 <section id="final-reflection" class="level2">
 <h2 class="anchored" data-anchor-id="final-reflection">Final Reflection</h2>
-<p>This hands-on exercise extends point pattern analysis from space into space-time. I first prepare the study window and fire points, then use month and day-of-year as temporal marks. The monthly KDE shows when the fire activity becomes stronger. The day-of-year weighted KDE gives smoother time slices. The pair-distance table is a simple check that many fires happen near other fires in both space and time. Overall, the pattern is not just spatial. It also changes clearly through the year.</p>
+<p>This hands-on exercise extends point pattern analysis from space into space-time. I first prepare the study window and fire points, then use month and day-of-year as temporal marks. The monthly KDE shows when fire activity becomes stronger. The improved day-of-year KDE follows Chapter 6.10 by using <code>h = 9000</code> and <code>lambda = 19</code>. The <code>stpp</code> part follows Chapter 6.11 by preparing x-y-time data and checking close space-time pairs. Overall, the pattern is not just spatial. It also changes clearly through the year.</p>
 
 
 </section>

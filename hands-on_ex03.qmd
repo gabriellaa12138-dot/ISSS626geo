@@ -22,7 +22,7 @@ The main question is simple:
 -   If not, where and when do they cluster?
 
 ::: callout-note
-The full chapter uses `sparr::spattemp.density()` and `stpp`. For this submission, I use a lighter `spatstat` workflow so the page can render reliably. The idea is the same: combine point locations with their event time.
+This report follows the Chapter 6 workflow. I keep the same main code structure and bandwidth choices. The data is smaller because I only focus on Bangka Belitung. Some `sparr` and `stpp` chunks are shown as the course code, while the rendered output uses matching `spatstat` code because those two packages cannot load on this Mac without XQuartz.
 :::
 
 ## Getting Started
@@ -384,7 +384,28 @@ The strongest monthly surface appears around September and October. This matches
 
 ## Part 5: STKDE by Day of Year
 
-Month is useful, but it is also coarse. I use day-of-year and a temporal weighting idea to create a few smoother time slices.
+This part follows Chapter 6.9. Month is useful, but it is also coarse. Day-of-year keeps the timing of each fire event more clearly.
+
+### Chapter 6 Code
+
+The course code creates a `ppp` object with `DayofYear`, adds the study window, then runs `spattemp.density()`.
+
+```{r, eval=FALSE}
+fire_yday_ppp <- fire_sf %>%
+  select(DayofYear) %>%
+  as.ppp()
+
+fire_yday_owin <- fire_yday_ppp[kbb_owin]
+summary(fire_yday_owin)
+
+kde_yday <- spattemp.density(
+  fire_yday_owin)
+summary(kde_yday)
+
+plot(kde_yday)
+```
+
+I already created `fire_yday_owin` above. The next chunk uses the same idea and produces a few selected day-of-year density slices.
 
 ### Temporal Weighted KDE Function
 
@@ -409,6 +430,8 @@ The spatial bandwidth is 15 km. The temporal bandwidth is 14 days. So each outpu
 
 ```{r}
 target_dates <- as.Date(c(
+  "2023-07-01",
+  "2023-08-01",
   "2023-09-01",
   "2023-10-01",
   "2023-11-01",
@@ -421,8 +444,8 @@ day_kde_list <- map(target_days, st_kde_slice)
 names(day_kde_list) <- format(target_dates, "%d %b")
 ```
 
-```{r, fig.width=9, fig.height=7}
-old_par <- par(mfrow = c(2, 2), mar = c(2, 2, 2, 1))
+```{r, fig.width=10, fig.height=7}
+old_par <- par(mfrow = c(2, 3), mar = c(2, 2, 2, 1))
 for (current_date in names(day_kde_list)) {
   plot(
     day_kde_list[[current_date]],
@@ -432,7 +455,7 @@ for (current_date in names(day_kde_list)) {
 par(old_par)
 ```
 
-The slices show how the hotspot changes through the peak season. October is the strongest period in this subset.
+The slices show how the hotspot changes through the peak season. September and October are the strongest periods in this subset.
 
 ```{r}
 slice_stats <- tibble(
@@ -447,11 +470,150 @@ kable(slice_stats)
 
 This table gives a simple numeric check for the plotted surfaces.
 
-## Part 6: Simple Space-Time Interaction Check
+## Part 6: STKDE by Day of Year: Improved Method
 
-The full `stpp` workflow computes a formal space-time K-function. Here I make a simpler check by counting point pairs that are close in both space and time.
+This part follows Chapter 6.10. The improved method first uses `BOOT.spattemp()` to select better bandwidth values. The chapter then uses `h = 9000` and `lambda = 19`.
 
-### Pair Distance Summary
+### Chapter 6 Code
+
+This is the course code structure for the improved method.
+
+```{r, eval=FALSE}
+set.seed(1234)
+BOOT.spattemp(fire_yday_owin)
+
+kde_yday <- spattemp.density(fire_yday_owin,
+                             h = 9000,
+                             lambda = 19)
+summary(kde_yday)
+
+plot(kde_yday)
+```
+
+### Improved Bandwidth Values
+
+```{r}
+improved_space_bandwidth <- 9000
+improved_lambda_days <- 19
+
+improved_bandwidth <- tibble(
+  spatial_bandwidth_h_m = improved_space_bandwidth,
+  temporal_bandwidth_lambda_days = improved_lambda_days
+)
+
+kable(improved_bandwidth)
+```
+
+I use the same bandwidth values from Chapter 6.10. A smaller spatial bandwidth gives a sharper surface. A 19-day temporal bandwidth smooths nearby days together.
+
+### Improved Day-of-Year KDE
+
+```{r}
+improved_kde_list <- map(
+  target_days,
+  ~ st_kde_slice(
+    target_day = .x,
+    lambda_days = improved_lambda_days,
+    sigma = improved_space_bandwidth
+  )
+)
+names(improved_kde_list) <- format(target_dates, "%d %b")
+```
+
+```{r, fig.width=10, fig.height=7}
+old_par <- par(mfrow = c(2, 3), mar = c(2, 2, 2, 1))
+for (current_date in names(improved_kde_list)) {
+  plot(
+    improved_kde_list[[current_date]],
+    main = paste("Improved STKDE:", current_date)
+  )
+}
+par(old_par)
+```
+
+```{r}
+improved_slice_stats <- tibble(
+  date = names(improved_kde_list),
+  day_of_year = target_days,
+  max_density = map_dbl(improved_kde_list, ~ max(.x$v, na.rm = TRUE))
+) %>%
+  mutate(max_density = signif(max_density, 3))
+
+kable(improved_slice_stats)
+```
+
+The improved surface is more detailed because `h = 9000` is smaller than the earlier 15 km bandwidth.
+
+## Part 7: Spatio-Temporal Point Patterns Analysis: stpp Methods
+
+This part follows Chapter 6.11. The course uses `stpp` to create a spatio-temporal point object and then computes a space-time K-function.
+
+### Preparing the stpp Data Frame
+
+The first two steps are almost the same as the chapter code. I extract x-y coordinates and combine them with `DayofYear`.
+
+```{r}
+coords <- st_coordinates(fire_sf)
+
+fire_df <- data.frame(
+  x = coords[, 1],
+  y = coords[, 2],
+  t = fire_sf$DayofYear)
+
+head(fire_df)
+```
+
+```{r}
+fire_df_summary <- fire_df %>%
+  summarise(
+    points = n(),
+    min_day = min(t),
+    median_day = median(t),
+    max_day = max(t)
+  )
+
+kable(fire_df_summary)
+```
+
+This table confirms that the object has location and time. This is the input needed for `stpp`.
+
+### Chapter 6 stpp Code
+
+The exact course workflow is shown here.
+
+```{r, eval=FALSE}
+fire_stpp <- as.3dpoints(fire_df)
+
+class(fire_stpp)
+
+plot(fire_stpp)
+
+kbb_stik <- STIKhat(fire_stpp)
+
+plotK(kbb_stik)
+```
+
+### Visualising the Space-Time Points
+
+```{r, fig.width=8, fig.height=6}
+ggplot(fire_df, aes(x = x, y = y, color = t)) +
+  geom_point(size = 1, alpha = 0.65) +
+  coord_equal() +
+  scale_color_viridis_c() +
+  labs(
+    title = "Fire Points Coloured by Day of Year",
+    x = "Easting (m)",
+    y = "Northing (m)",
+    color = "Day"
+  ) +
+  theme_minimal()
+```
+
+This plot is a 2D version of the `stpp` point object. The colour shows the time of each fire event.
+
+### Space-Time K-Function Idea
+
+The `STIKhat()` output is used to check whether many events are close in both space and time. I reproduce the same idea by counting point pairs within spatial distance `u` and temporal distance `v`.
 
 ```{r}
 xy <- st_coordinates(fire_sf)
@@ -483,6 +645,41 @@ kable(interaction_table)
 
 If many pairs are close in both space and time, it suggests a clustered space-time process. The share increases when the space and time windows become wider.
 
+### Space-Time K Surface
+
+```{r}
+u_values <- seq(5, 60, by = 5)
+v_values <- seq(7, 84, by = 7)
+
+kbb_stik_like <- expand_grid(
+  u = u_values,
+  v = v_values
+) %>%
+  rowwise() %>%
+  mutate(
+    pair_share = sum(space_pairs_km <= u & time_pairs_days <= v) / total_pairs
+  ) %>%
+  ungroup()
+
+head(kbb_stik_like)
+```
+
+```{r, fig.width=8, fig.height=6}
+ggplot(kbb_stik_like, aes(x = u, y = v, fill = pair_share)) +
+  geom_tile() +
+  geom_contour(aes(z = pair_share), color = "white", linewidth = 0.25) +
+  scale_fill_viridis_c() +
+  labs(
+    title = "Space-Time Close Pair Surface",
+    x = "u: spatial distance threshold (km)",
+    y = "v: temporal distance threshold (days)",
+    fill = "Pair share"
+  ) +
+  theme_minimal()
+```
+
+This plot is read like the Chapter 6 `plotK()` result. High values near small `u` and small `v` suggest short-distance and short-time clustering.
+
 ### Space-Time Distance Plot
 
 ```{r, fig.width=8, fig.height=5}
@@ -509,6 +706,12 @@ ggplot(pair_sample, aes(x = space_km, y = time_days)) +
 
 The lower-left part of the plot represents fire pairs that are close in both space and time. This supports the idea of space-time clustering during the fire season.
 
+### Guide to Interpret the Plot
+
+-   High values near small `u` and small `v` suggest clustering at short spatial and temporal distances.
+-   Low or flat values suggest a more random pattern.
+-   The surface changes show how quickly clustering weakens when distance or time becomes larger.
+
 ## Final Reflection
 
-This hands-on exercise extends point pattern analysis from space into space-time. I first prepare the study window and fire points, then use month and day-of-year as temporal marks. The monthly KDE shows when the fire activity becomes stronger. The day-of-year weighted KDE gives smoother time slices. The pair-distance table is a simple check that many fires happen near other fires in both space and time. Overall, the pattern is not just spatial. It also changes clearly through the year.
+This hands-on exercise extends point pattern analysis from space into space-time. I first prepare the study window and fire points, then use month and day-of-year as temporal marks. The monthly KDE shows when fire activity becomes stronger. The improved day-of-year KDE follows Chapter 6.10 by using `h = 9000` and `lambda = 19`. The `stpp` part follows Chapter 6.11 by preparing x-y-time data and checking close space-time pairs. Overall, the pattern is not just spatial. It also changes clearly through the year.
