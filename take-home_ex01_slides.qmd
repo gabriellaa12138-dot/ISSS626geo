@@ -209,6 +209,8 @@ The raw point map provides a first check of the event locations. It shows more r
 
 ## Data quality and province distribution
 
+::::: columns
+::: {.column width="42%"}
 ```{r}
 quality <- tibble(
   item = c(
@@ -223,17 +225,21 @@ quality <- tibble(
 knitr::kable(quality)
 ```
 
-Records with different event IDs but the same coordinates are retained. They may represent separate reported events at one location.
+Different event IDs with the same coordinates are retained as separate records.
+:::
 
-```{r, fig.width=9, fig.height=4.2}
+::: {.column width="58%"}
+```{r, fig.width=6.5, fig.height=5.2}
 province_plot
 ```
+:::
+:::::
 
 Bangkok has the largest number of records, followed by Samut Prakan and Pathum Thani. This is a count map, so it should not be read as an exposure adjusted risk map.
 
 ## Time pattern across the year and day
 
-```{r, fig.width=11, fig.height=2.6}
+```{r, fig.width=11, fig.height=2.3}
 par(mfrow = c(1, 2), mar = c(5, 4, 3, 1))
 barplot(
   monthly$n,
@@ -254,7 +260,7 @@ barplot(
 par(mfrow = c(1, 1))
 ```
 
-```{r, fig.width=11, fig.height=3.2}
+```{r, fig.width=11, fig.height=2.7}
 ggplot(month_hour, aes(x = hour, y = month, fill = n)) +
   geom_tile(color = "white", linewidth = 0.12) +
   scale_fill_viridis_c(option = "C", name = "Records") +
@@ -371,7 +377,7 @@ The median nearest neighbour distance is about 34 m. Clark Evans R is about 0.26
 
 ## K function and trend sensitivity
 
-```{r, fig.width=11, fig.height=5.3}
+```{r, fig.width=11, fig.height=5.0}
 set.seed(626)
 
 k_csr <- envelope(
@@ -391,11 +397,7 @@ abline(h = 0, col = "red", lty = 2)
 par(mfrow = c(1, 1))
 ```
 
-```{r}
-knitr::kable(jitter_sensitivity)
-```
-
-K is above the homogeneous CSR envelope. After allowing for the broad 5 km intensity trend, residual clustering is strongest below about 5 km. Coordinate jitter also leaves R far below 1.
+K is above the homogeneous CSR envelope. After allowing for the broad 5 km intensity trend, residual clustering is strongest below about 5 km. Coordinate jitter gives R values from 0.264 to 0.295, still far below 1.
 
 ## Fatal and nonfatal spatial patterns
 

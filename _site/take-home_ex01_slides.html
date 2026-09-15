@@ -30,6 +30,7 @@
     }
   </style>
   <link rel="stylesheet" href="site_libs/revealjs/dist/theme/quarto-534cd8e3a96973385dffff3f4709048d.css">
+  <link rel="stylesheet" href="take-home-slides.css">
   <link href="site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="site_libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="site_libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -155,6 +156,8 @@ Ziying Zhou
 </section>
 <section id="data-quality-and-province-distribution" class="slide level2">
 <h2>Data quality and province distribution</h2>
+<div class="columns">
+<div class="column" style="width:42%;">
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top">
@@ -189,75 +192,81 @@ Ziying Zhou
 </table>
 </div>
 </div>
-<p>Records with different event IDs but the same coordinates are retained. They may represent separate reported events at one location.</p>
-
-<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-4-1.png" width="864" class="r-stretch"><p>Bangkok has the largest number of records, followed by Samut Prakan and Pathum Thani. This is a count map, so it should not be read as an exposure adjusted risk map.</p>
+<p>Different event IDs with the same coordinates are retained as separate records.</p>
+</div><div class="column" style="width:58%;">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-4-1.png" width="624"></p>
+</figure>
+</div>
+</div>
+</div>
+</div></div>
+<p>Bangkok has the largest number of records, followed by Samut Prakan and Pathum Thani. This is a count map, so it should not be read as an exposure adjusted risk map.</p>
 </section>
-<section id="kernel-density-at-5-km" class="slide level2">
-<h2>Kernel density at 5 km</h2>
+<section id="time-pattern-across-the-year-and-day" class="slide level2">
+<h2>Time pattern across the year and day</h2>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-5-1.png" width="1056"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-6-1.png" width="1056"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Q4 has the highest total. The largest hourly total is at 19:00, but the heatmap shows several busy periods rather than one isolated hour.</p>
+</section>
+<section id="quadrat-counts-and-regional-density" class="slide level2">
+<h2>Quadrat counts and regional density</h2>
 
-<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-5-1.png" width="960" class="r-stretch"><p>The KDE gives a smoothed view of local concentration. A 5 km bandwidth shows the regional pattern rather than individual points or exact hotspot boundaries.</p>
+<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-7-1.png" width="1056" class="r-stretch"><p>The grid shows the raw count contrast, while KDE shows the smoothed pattern. The quadrat Monte Carlo p value is 0.005, supporting a nonuniform intensity.</p>
+</section>
+<section id="quarterly-spatial-pattern" class="slide level2">
+<h2>Quarterly spatial pattern</h2>
+
+<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-9-1.png" width="960" class="r-stretch"><p>The broad central and eastern concentration persists in all four quarters. Counts rise from 731 in Q1 to 1,128 in Q4, and the surface becomes stronger in the second half of the year.</p>
 </section>
 <section id="kde-bandwidth-sensitivity" class="slide level2">
 <h2>KDE bandwidth sensitivity</h2>
 
-<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-6-1.png" width="1152" class="r-stretch"><p>The 3 km map shows smaller local peaks. The 10 km map smooths them into a broad regional pattern. The central and eastern concentration remains visible in all three maps, so the broad conclusion does not depend on one bandwidth.</p>
+<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-10-1.png" width="1152" class="r-stretch"><p>The 3 km map shows smaller local peaks. The 10 km map smooths them into a broad regional pattern. The central and eastern concentration remains visible in all three maps, so the broad conclusion does not depend on one bandwidth.</p>
 </section>
-<section id="when-are-reports-more-common" class="slide level2">
-<h2>When are reports more common?</h2>
+<section id="nearest-neighbour-evidence" class="slide level2">
+<h2>Nearest neighbour evidence</h2>
 
-<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-7-1.png" width="960" class="r-stretch"><p>October, November, and December have the highest monthly counts. The largest hourly bar is at 19:00, with 199 records. These are reported event counts, not exposure adjusted risk.</p>
+<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-11-1.png" width="960" class="r-stretch"><p>The median nearest neighbour distance is about 34 m. Clark Evans R is about 0.26, the G curve is high, and the F curve is low relative to CSR. All three results support short distance clustering.</p>
 </section>
-<section id="are-nearby-events-more-common-than-csr" class="slide level2">
-<h2>Are nearby events more common than CSR?</h2>
+<section id="k-function-and-trend-sensitivity" class="slide level2">
+<h2>K function and trend sensitivity</h2>
 
-<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-8-1.png" width="960" class="r-stretch"><p>The Clark Evans R value is about 0.26 and its p value is below 0.001. The G curve is above the CSR envelope at short distances, while the F curve is below it. Together, these results support short distance clustering relative to a uniform random reference.</p>
+<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-12-1.png" width="1056" class="r-stretch"><p>K is above the homogeneous CSR envelope. After allowing for the broad 5 km intensity trend, residual clustering is strongest below about 5 km. Coordinate jitter gives R values from 0.264 to 0.295, still far below 1.</p>
 </section>
-<section id="k-and-cross-k-functions" class="slide level2">
-<h2>K and Cross K functions</h2>
+<section id="fatal-and-nonfatal-spatial-patterns" class="slide level2">
+<h2>Fatal and nonfatal spatial patterns</h2>
 
-<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-9-1.png" width="1056" class="r-stretch"><p>The K curve is above the Monte Carlo CSR envelope across the selected range. The Cross K curve also sits above its Poisson reference. Together, they show that nearby reports cluster and fatal events occur near nonfatal events more often than under a simple independent reference. This does not estimate fatality risk.</p>
+<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-13-1.png" width="1152" class="r-stretch"><p>Both event types share a broad urban pattern. Yet the observed Cross K is below the random labelling envelope. With locations fixed, fatal events have fewer nearby nonfatal neighbours than expected from random labels.</p>
 </section>
-<section id="robustness-checks" class="slide level2">
-<h2>Robustness checks</h2>
-<div class="cell">
-<div class="cell-output-display">
-<table class="caption-top">
-<thead>
-<tr class="header">
-<th style="text-align: left;">pattern</th>
-<th style="text-align: right;">Clark_Evans_R</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">Original coordinates</td>
-<td style="text-align: right;">0.2638</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">25 m jitter</td>
-<td style="text-align: right;">0.2702</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">100 m jitter</td>
-<td style="text-align: right;">0.2954</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-
-<img data-src="take-home_ex01_slides_files/figure-revealjs/unnamed-chunk-11-1.png" width="960" class="r-stretch"><p>Jitter moves every point by at most 25 m or 100 m. The Clark Evans R value remains far below 1, so repeated coordinates do not explain the result. After the broad 5 km intensity trend is allowed for, the inhomogeneous L curve remains positive only at short distances and crosses the CSR baseline around 5 km.</p>
-</section>
-<section id="planning-limits-and-conclusion" class="slide level2">
-<h2>Planning, limits, and conclusion</h2>
+<section id="main-findings-and-planning-use" class="slide level2">
+<h2>Main findings and planning use</h2>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top">
 <colgroup>
-<col style="width: 10%">
-<col style="width: 46%">
+<col style="width: 8%">
 <col style="width: 43%">
+<col style="width: 48%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -269,20 +278,25 @@ Ziying Zhou
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">First order</td>
-<td style="text-align: left;">Higher report counts in Bangkok and the central and eastern region</td>
-<td style="text-align: left;">Review road corridors and junctions in the broad concentration area</td>
+<td style="text-align: left;">Quadrats and KDE show a persistent central and eastern concentration</td>
+<td style="text-align: left;">Review corridors and junctions in the broad concentration area</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">CSR tests</td>
-<td style="text-align: left;">Clark Evans R is about 0.26 and G, F, and K support clustering</td>
-<td style="text-align: left;">Treat nearby event patterns as screening evidence for further checks</td>
+<td style="text-align: left;">Time</td>
+<td style="text-align: left;">Q4 has 1,128 records compared with 731 in Q1</td>
+<td style="text-align: left;">Compare busy periods with traffic flow, holidays, weather, and road works</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Trend sensitivity</td>
-<td style="text-align: left;">Residual clustering is strongest below about 5 km after the broad trend is allowed</td>
+<td style="text-align: left;">Interaction</td>
+<td style="text-align: left;">Residual clustering is strongest below about 5 km</td>
 <td style="text-align: left;">Prioritise local corridor checks instead of one large regional hotspot claim</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">Fatal labels</td>
+<td style="text-align: left;">Fatal labels show spatial separation under random labelling</td>
+<td style="text-align: left;">Study road class and speed conditions before explaining fatal outcomes</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;">Data limit</td>
 <td style="text-align: left;">No traffic exposure or road network denominator is available</td>
 <td style="text-align: left;">Do not rank provinces as more dangerous from event counts alone</td>
@@ -291,11 +305,8 @@ Ziying Zhou
 </table>
 </div>
 </div>
-<p>Link the event records to a road network before making road segment recommendations. Compare the monthly and hourly counts with traffic flow, holidays, weather, and road works. The data do not include traffic exposure, road length, population, or enforcement, so they cannot identify the most dangerous province.</p>
-</section>
-<section id="references-and-reporting-note" class="slide level2">
-<h2>References and reporting note</h2>
-<p>Data: <a href="https://www.kaggle.com/datasets/thaweewatboy/thailand-road-accident-2019-2022">Thailand Road Accident 2019 to 2022</a> and <a href="https://www.geoboundaries.org/">geoBoundaries</a>.</p>
+<p>Use the results for screening, not direct risk ranking. The next step is to connect events to road segments and add traffic exposure.</p>
+<p>Data: <a href="https://www.kaggle.com/datasets/thaweewatboy/thailand-road-accident-2019-2022">Thailand Road Accident 2019 to 2022</a>, <a href="https://www.geoboundaries.org/">geoBoundaries</a>. Methods: Gimond (2018), Lovelace et al.&nbsp;(2024), Pebesma and Bivand (2025).</p>
 <p>Ziying Zhou</p>
 
 
