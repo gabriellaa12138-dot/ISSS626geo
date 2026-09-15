@@ -17,6 +17,12 @@ website:
             text: Hands-on 3
           - href: hands-on_ex04.qmd
             text: Hands-on 4
+      - text: Take home Exercise
+        menu:
+          - href: take-home_ex01.qmd
+            text: Technical Report 1
+          - href: take-home_ex01_slides.qmd
+            text: Executive Summary 1
       - href: about.qmd
         text: About
 

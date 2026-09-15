@@ -1,0 +1,33 @@
+.reveal {
+  font-size: 28px;
+}
+
+.reveal h2 {
+  font-size: 1.5em;
+  margin-bottom: 0.35em;
+}
+
+.reveal p,
+.reveal li {
+  line-height: 1.25;
+}
+
+.reveal table {
+  font-size: 0.68em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.reveal table th,
+.reveal table td {
+  padding: 0.22em 0.4em;
+}
+
+.reveal .cell-output-display {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+.reveal .slide-number {
+  font-size: 14px;
+}

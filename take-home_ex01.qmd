@@ -1,0 +1,1162 @@
+---
+title: "Take home Exercise 1: Road Traffic Accident Patterns in Bangkok"
+subtitle: "Option B Technical Report"
+execute:
+  echo: true
+  warning: false
+  message: false
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    css: take-home-report.css
+---
+
+## Executive summary
+
+This report studies reported road traffic accidents in the Bangkok Greater Metropolitan Area during 2022. The study area is defined as Bangkok, Samut Prakan, Nonthaburi, Pathum Thani, Samut Sakhon, and Nakhon Pathom.
+
+The analysis keeps 3,586 geocoded accident records inside the study window. Counts rise from 731 events in the first quarter to 1,128 in the fourth quarter. A quadrat test, the Clark Evans test, G and F functions, and a Monte Carlo K envelope all show strong departure from complete spatial randomness. A sensitivity check that adjusts for the broad 5 km intensity trend still finds residual clustering at short distances, while the broader pattern becomes much weaker.
+
+Fatal and nonfatal events share the same broad urban concentration. However, a random labelling Cross K envelope gives a more careful result than the simple Poisson curve: fatal events have fewer nearby nonfatal neighbours than expected when the observed locations are fixed and the fatal labels are randomly reassigned. This contrast shows why the choice of reference model matters.
+
+The results identify where reported accidents are concentrated, but they do not measure the probability of an accident. The dataset has no traffic volume, road length, population at risk, or exposure measure. Therefore, the findings should support screening and resource planning, not causal claims or direct risk ranking.
+
+## Research question and objectives
+
+The main question is:
+
+> How were reported road traffic accidents distributed across the Bangkok Greater Metropolitan Area in 2022, and what evidence is there of interaction between nearby accident events?
+
+The analysis has five objectives:
+
+1.  Prepare a clean point layer from the accident table and a clear spatial study window.
+2.  Describe how accident intensity varies across the study area and across time.
+3.  Test whether nearby accident events are more common than expected under a complete spatial randomness reference.
+4.  Check whether short distance interaction remains after accounting for the broad spatial intensity trend and repeated coordinates.
+5.  Translate the evidence into practical road safety planning ideas while stating the limits of the data.
+
+## Data and study design
+
+### Data sources
+
+The core accident data are from the Kaggle dataset specified in the course brief. The original file covers approximately 2019 to 2022. I use the 2022 records only, as required for this dataset option. The local CSV is a smaller copy containing the six provinces used for the Bangkok Greater Metropolitan Area. It keeps records with missing coordinates so that the quality checks remain visible.
+
+The administrative boundary is the geoBoundaries Thailand ADM1 open dataset. The six province polygons are merged into one observation window. The boundary data are used to define the analysis area, not to claim that all accidents in a province have the same level of exposure.
+
+```{r}
+library(sf)
+library(spatstat)
+library(tmap)
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(leaflet)
+library(plotly)
+
+set.seed(1234)
+tmap_mode("plot")
+```
+
+```{r}
+data_used <- tibble(
+  dataset = c(
+    "Thailand Road Accident 2019 to 2022",
+    "Thailand ADM1 boundary"
+  ),
+  local_file = c(
+    "data/aspatial/thailand_road_accident_2022_bangkok_gma.csv",
+    "data/geospatial/geoBoundaries-THA-ADM1.geojson"
+  ),
+  source = c(
+    "Kaggle dataset specified in the course brief",
+    "geoBoundaries open boundary data"
+  ),
+  coverage = c(
+    "Thailand records filtered to 2022 and six study provinces",
+    "Thailand province level polygons"
+  ),
+  access_date = c("12 September 2026", "12 September 2026")
+)
+
+kable(data_used)
+```
+
+The main packages follow the earlier hands on work. sf is used for geometry and coordinate reference systems. spatstat is used for point pattern statistics. tmap and ggplot2 are used for maps and statistical graphics. dplyr, lubridate, and knitr support cleaning, time variables, and tables.
+
+### Study area
+
+The selected provinces are represented by their ADM1 ISO codes. The projected system is EPSG:32647, UTM Zone 47N. It uses metres, which makes the distance based analysis easier to interpret.
+
+```{r}
+gma_iso <- c("TH-10", "TH-11", "TH-12", "TH-13", "TH-73", "TH-74")
+
+tha_adm1 <- st_read(
+  "data/geospatial/geoBoundaries-THA-ADM1.geojson",
+  quiet = TRUE
+) %>%
+  st_make_valid()
+
+gma_provinces <- tha_adm1 %>%
+  filter(shapeISO %in% gma_iso) %>%
+  select(shapeName, shapeISO)
+
+gma_provinces_utm <- st_transform(gma_provinces, 32647)
+
+gma_boundary <- gma_provinces_utm %>%
+  summarise(area_name = "Bangkok Greater Metropolitan Area", .groups = "drop")
+
+gma_boundary
+```
+
+```{r}
+gma_summary <- tibble(
+  provinces = nrow(gma_provinces),
+  area_sqkm = as.numeric(st_area(gma_boundary)) / 1000000,
+  crs = st_crs(gma_boundary)$epsg,
+  valid_geometry = all(st_is_valid(gma_boundary))
+) %>%
+  mutate(area_sqkm = round(area_sqkm, 2))
+
+kable(gma_summary)
+```
+
+The spatial window is the union of the six province polygons. This is a transparent way to operationalise the Bangkok Greater Metropolitan Area for a point process. It also avoids analysing points across all of Thailand when the question is about the Bangkok region.
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(gma_provinces_utm) +
+  tm_polygons(fill = "grey92", col = "white") +
+  tm_borders(col = "grey35", lwd = 1) +
+  tm_text("shapeName", size = 0.7) +
+  tm_title("Bangkok Greater Metropolitan Area study window")
+```
+
+### Point event and time window
+
+One row in the accident table is treated as one reported accident event. The acc_code field is used as the event identifier. Repeated coordinates are kept when the event identifiers are different. Several accidents can happen at the same reported location, so removing all duplicated coordinates would remove real event records.
+
+The temporal window is 1 January 2022 to 31 December 2022. The month and hour variables are derived from incident_datetime. The main point pattern analysis is spatial. The monthly and hourly summaries provide a time based first order view without claiming a full space time model.
+
+## Data preparation and quality assessment
+
+### Import and inspect the accident table
+
+```{r}
+accidents_raw <- read_csv(
+  "data/aspatial/thailand_road_accident_2022_bangkok_gma.csv",
+  show_col_types = FALSE,
+  na = c("", "NA", "NULL")
+)
+
+glimpse(accidents_raw)
+```
+
+The table contains date and time fields, province names, road information, accident characteristics, and coordinates. It also contains the number of fatalities and injuries, which are used for descriptive summaries and a marked point extension.
+
+```{r}
+accidents <- accidents_raw %>%
+  mutate(
+    incident_datetime = ymd_hms(incident_datetime, quiet = TRUE),
+    report_datetime = ymd_hms(report_datetime, quiet = TRUE),
+    latitude = as.numeric(latitude),
+    longitude = as.numeric(longitude),
+    year = year(incident_datetime),
+    month_num = month(incident_datetime),
+    month_name = factor(month.name[month_num], levels = month.name),
+    hour = hour(incident_datetime),
+    fatality_class = if_else(
+      coalesce(number_of_fatalities, 0) > 0,
+      "Fatal event",
+      "Nonfatal event"
+    )
+  ) %>%
+  filter(
+    year == 2022,
+    province_en %in% c(
+      "Bangkok", "Samut Prakan", "Nonthaburi",
+      "Pathum Thani", "Samut Sakhon", "Nakhon Pathom"
+    )
+  )
+```
+
+```{r}
+inspection_summary <- tibble(
+  rows_imported = nrow(accidents_raw),
+  rows_after_year_and_province_filter = nrow(accidents),
+  unique_event_ids = n_distinct(accidents$acc_code),
+  duplicate_event_ids = sum(duplicated(accidents$acc_code)),
+  missing_datetime = sum(is.na(accidents$incident_datetime)),
+  missing_coordinates = sum(is.na(accidents$latitude) | is.na(accidents$longitude)),
+  duplicate_coordinate_rows = sum(
+    duplicated(accidents %>% select(longitude, latitude))
+  )
+)
+
+kable(inspection_summary)
+```
+
+There are no duplicated event IDs. There are 189 records with missing coordinates. The duplicated coordinate rows are not deleted because the event IDs are different. This is an important distinction between a duplicated record and two separate events at the same location.
+
+### Coordinate and geometry checks
+
+```{r}
+coordinate_check <- accidents %>%
+  summarise(
+    non_missing_coordinates = sum(!is.na(latitude) & !is.na(longitude)),
+    invalid_numeric_coordinates = sum(
+      (!is.na(latitude) & !is.finite(latitude)) |
+        (!is.na(longitude) & !is.finite(longitude))
+    ),
+    latitude_outside_thailand = sum(
+      !is.na(latitude) & (latitude < 5 | latitude > 21)
+    ),
+    longitude_outside_thailand = sum(
+      !is.na(longitude) & (longitude < 97 | longitude > 106)
+    )
+  )
+
+kable(coordinate_check)
+```
+
+Only records with finite latitude and longitude can become point geometries. I transform these coordinates from WGS 84 to EPSG:32647 before distance calculations.
+
+```{r}
+accidents_sf <- accidents %>%
+  filter(
+    !is.na(latitude),
+    !is.na(longitude),
+    is.finite(latitude),
+    is.finite(longitude)
+  ) %>%
+  st_as_sf(
+    coords = c("longitude", "latitude"),
+    crs = 4326,
+    remove = FALSE
+  ) %>%
+  st_transform(32647)
+
+inside_gma <- lengths(st_intersects(accidents_sf, gma_boundary)) > 0
+
+accidents_sf <- accidents_sf[inside_gma, ]
+```
+
+```{r}
+final_quality_summary <- tibble(
+  records_with_coordinates = nrow(accidents) - inspection_summary$missing_coordinates,
+  outside_gma_after_coordinate_check = sum(!inside_gma),
+  final_point_events = nrow(accidents_sf),
+  invalid_point_geometries = sum(!st_is_valid(accidents_sf)),
+  first_event = min(accidents_sf$incident_datetime, na.rm = TRUE),
+  last_event = max(accidents_sf$incident_datetime, na.rm = TRUE)
+)
+
+kable(final_quality_summary)
+```
+
+The final point pattern has 3,586 events. Four records have valid coordinates but fall outside the merged boundary, so they are removed from the point process. This makes the event layer and the observation window consistent.
+
+### Inspect the prepared point layer
+
+```{r}
+layer_summary <- tibble(
+  object = c("gma_boundary", "accidents_sf"),
+  features = c(nrow(gma_boundary), nrow(accidents_sf)),
+  geometry = c(
+    paste(unique(st_geometry_type(gma_boundary)), collapse = ", "),
+    paste(unique(st_geometry_type(accidents_sf)), collapse = ", ")
+  ),
+  epsg = c(st_crs(gma_boundary)$epsg, st_crs(accidents_sf)$epsg)
+)
+
+kable(layer_summary)
+```
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(gma_boundary) +
+  tm_polygons(fill = "grey94", col = "grey60") +
+  tm_shape(accidents_sf) +
+  tm_dots(size = 0.025, col = "#d7301f", alpha = 0.35) +
+  tm_title("Reported road accidents in 2022")
+```
+
+The map is a first visual check. It shows that the events are concentrated in the built up part of the region, but the map alone cannot separate high accident intensity from high traffic exposure.
+
+### Interactive event explorer
+
+The map below keeps the province boundary visible and separates fatal and nonfatal records into switchable layers. A reader can zoom, turn either layer on or off, and select a point to inspect its event ID, province, time, and recorded fatalities.
+
+```{r}
+accidents_web <- accidents_sf %>%
+  st_transform(4326) %>%
+  mutate(
+    popup_text = paste0(
+      "<strong>Event ID:</strong> ", acc_code,
+      "<br><strong>Province:</strong> ", province_en,
+      "<br><strong>Time:</strong> ", format(incident_datetime, "%d %b %Y %H:%M"),
+      "<br><strong>Fatalities:</strong> ", coalesce(number_of_fatalities, 0)
+    )
+  )
+
+gma_web <- st_transform(gma_provinces_utm, 4326)
+
+leaflet(options = leafletOptions(preferCanvas = TRUE)) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(
+    data = gma_web,
+    fill = FALSE,
+    color = "#4b5563",
+    weight = 1,
+    opacity = 0.8,
+    label = ~shapeName
+  ) %>%
+  addCircleMarkers(
+    data = filter(accidents_web, fatality_class == "Nonfatal event"),
+    radius = 2,
+    stroke = FALSE,
+    fillColor = "#2c7fb8",
+    fillOpacity = 0.45,
+    popup = ~popup_text,
+    group = "Nonfatal event"
+  ) %>%
+  addCircleMarkers(
+    data = filter(accidents_web, fatality_class == "Fatal event"),
+    radius = 4,
+    color = "#7f0000",
+    weight = 0.6,
+    fillColor = "#d7301f",
+    fillOpacity = 0.8,
+    popup = ~popup_text,
+    group = "Fatal event"
+  ) %>%
+  addLayersControl(
+    overlayGroups = c("Fatal event", "Nonfatal event"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = c("#d7301f", "#2c7fb8"),
+    labels = c("Fatal event", "Nonfatal event"),
+    title = "Event type",
+    opacity = 0.85
+  )
+```
+
+This view is useful for record checking and local inspection. It remains an event map, not a risk map, because nearby traffic exposure is still unknown.
+
+## First order analysis
+
+First order analysis asks how event intensity varies across the study area. I use province summaries, monthly counts, hourly counts, and kernel density estimation. The counts describe the data directly. The KDE gives a smooth spatial view of local concentration.
+
+### Province level event summary
+
+```{r}
+province_lookup <- tibble(
+  shapeISO = gma_iso,
+  province_en = c(
+    "Bangkok", "Samut Prakan", "Nonthaburi",
+    "Pathum Thani", "Nakhon Pathom", "Samut Sakhon"
+  )
+)
+
+province_counts <- accidents_sf %>%
+  st_drop_geometry() %>%
+  count(province_en, name = "accidents")
+
+province_events <- gma_provinces_utm %>%
+  left_join(province_lookup, by = "shapeISO") %>%
+  left_join(province_counts, by = "province_en") %>%
+  mutate(accidents = replace_na(accidents, 0L))
+
+province_table <- province_events %>%
+  mutate(area_sqkm = as.numeric(st_area(geometry)) / 1000000) %>%
+  st_drop_geometry() %>%
+  select(province_en, accidents, area_sqkm) %>%
+  mutate(
+    area_sqkm = round(area_sqkm, 2),
+    accidents_per_sqkm = round(accidents / area_sqkm, 2)
+  ) %>%
+  arrange(desc(accidents))
+
+kable(province_table)
+```
+
+```{r, fig.width=8, fig.height=7}
+tm_shape(province_events) +
+  tm_polygons(
+    fill = "accidents",
+    fill.legend = tm_legend(title = "Reported accidents"),
+    fill.palette = "YlOrRd",
+    fill.style = "quantile"
+  ) +
+  tm_borders(col = "grey30", lwd = 0.8) +
+  tm_text("province_en", size = 0.55) +
+  tm_title("Reported accidents by province")
+```
+
+Bangkok has the largest number of records, followed by Samut Prakan and Pathum Thani. This is a count comparison, not a population or traffic adjusted rate. The area column is included as context, but it should not be treated as a substitute for exposure data.
+
+### Monthly and hourly variation
+
+```{r}
+monthly_counts <- accidents_sf %>%
+  st_drop_geometry() %>%
+  count(month_num) %>%
+  complete(month_num = 1:12, fill = list(n = 0)) %>%
+  mutate(month = factor(month.name[month_num], levels = month.name))
+
+hourly_counts <- accidents_sf %>%
+  st_drop_geometry() %>%
+  count(hour) %>%
+  complete(hour = 0:23, fill = list(n = 0))
+
+month_hour_counts <- accidents_sf %>%
+  st_drop_geometry() %>%
+  count(month_num, hour) %>%
+  complete(month_num = 1:12, hour = 0:23, fill = list(n = 0)) %>%
+  mutate(month = factor(month.abb[month_num], levels = month.abb))
+
+quarter_counts <- accidents_sf %>%
+  st_drop_geometry() %>%
+  mutate(quarter = factor(
+    paste0("Q", quarter(incident_datetime)),
+    levels = paste0("Q", 1:4)
+  )) %>%
+  count(quarter)
+
+kable(monthly_counts)
+```
+
+```{r, fig.width=10, fig.height=5}
+ggplot(monthly_counts, aes(x = month, y = n, group = 1)) +
+  geom_line(color = "#2c7fb8", linewidth = 0.8) +
+  geom_point(color = "#d7301f", size = 2) +
+  labs(
+    title = "Reported accidents by month",
+    x = NULL,
+    y = "Number of records"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r, fig.width=10, fig.height=5}
+ggplot(hourly_counts, aes(x = hour, y = n)) +
+  geom_col(fill = "#41ab5d") +
+  scale_x_continuous(breaks = 0:23) +
+  labs(
+    title = "Reported accidents by hour of the day",
+    x = "Hour",
+    y = "Number of records"
+  ) +
+  theme_minimal()
+```
+
+```{r, fig.width=10, fig.height=5}
+ggplot(month_hour_counts, aes(x = hour, y = month, fill = n)) +
+  geom_tile(color = "white", linewidth = 0.15) +
+  scale_fill_viridis_c(option = "C", name = "Records") +
+  scale_x_continuous(breaks = seq(0, 23, 2)) +
+  labs(
+    title = "Month and hour pattern of reported accidents",
+    x = "Hour",
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+```
+
+```{r}
+interactive_time_heatmap <- month_hour_counts %>%
+  mutate(
+    hover_text = paste0(
+      month, ", ", sprintf("%02d:00", hour),
+      "<br>Reported accidents: ", n
+    )
+  ) %>%
+  ggplot(aes(x = hour, y = month, fill = n, text = hover_text)) +
+  geom_tile(color = "white", linewidth = 0.15) +
+  scale_fill_viridis_c(option = "C", name = "Records") +
+  scale_x_continuous(breaks = seq(0, 23, 2)) +
+  labs(
+    title = "Interactive month and hour view",
+    x = "Hour",
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+
+ggplotly(interactive_time_heatmap, tooltip = "text") %>%
+  layout(
+    hoverlabel = list(align = "left"),
+    margin = list(l = 70, r = 25, b = 55, t = 60)
+  )
+```
+
+The monthly counts are highest in October, November, and December in this extracted data. The hourly total is highest at 19:00, while the heatmap shows that no single hour explains the full yearly pattern. The largest month and hour cell is December at 10:00 with 29 records. These plots describe when records are reported. They do not show whether the chance of an accident is higher because the number of vehicles or people on the roads also changes.
+
+### Kernel density estimation
+
+```{r}
+accident_coords <- st_coordinates(accidents_sf)
+accident_window <- as.owin(st_geometry(gma_boundary))
+
+accident_ppp <- ppp(
+  x = accident_coords[, "X"],
+  y = accident_coords[, "Y"],
+  window = accident_window,
+  marks = accidents_sf$fatality_class
+)
+
+accident_ppp_unmarked <- unmark(accident_ppp)
+
+point_pattern_summary <- tibble(
+  points = npoints(accident_ppp_unmarked),
+  window_area_sqkm = spatstat.geom::area.owin(Window(accident_ppp_unmarked)) / 1000000,
+  mean_intensity_per_sqkm = intensity(accident_ppp_unmarked) * 1000000,
+  duplicated_coordinates = sum(duplicated(accident_coords))
+) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+kable(point_pattern_summary)
+```
+
+The point process keeps repeated locations because they represent separate accident IDs. spatstat reports the duplicated point warning for this reason. The warning is documented rather than hidden.
+
+### Quadrat count pattern
+
+A quadrat map gives a direct unsmoothed view of how the event count varies across the window. I use a 6 by 6 grid and a Monte Carlo quadrat test with 199 simulations. The simulated test avoids relying only on the chi square approximation when some boundary cells are small.
+
+```{r}
+set.seed(626)
+
+quadrat_counts <- quadratcount(
+  accident_ppp_unmarked,
+  nx = 6,
+  ny = 6
+)
+
+quadrat_mc <- quadrat.test(
+  accident_ppp_unmarked,
+  nx = 6,
+  ny = 6,
+  alternative = "clustered",
+  method = "MonteCarlo",
+  nsim = 199
+)
+
+quadrat_result <- tibble(
+  grid = "6 by 6",
+  chi_square = unname(quadrat_mc$statistic),
+  simulated_p_value = quadrat_mc$p.value
+) %>%
+  mutate(
+    chi_square = round(chi_square, 2),
+    simulated_p_value = signif(simulated_p_value, 3)
+  )
+
+kable(quadrat_result)
+```
+
+```{r, fig.width=8, fig.height=7}
+plot(
+  quadrat_counts,
+  main = "Accident counts in a 6 by 6 quadrat grid",
+  col = "grey30"
+)
+```
+
+The cells covering central Bangkok and the eastern urban corridor contain many more records than most outer cells. The Monte Carlo p value is 0.005, which is the smallest value available from 199 simulations. This supports a nonuniform first order intensity and explains why homogeneous CSR is only a starting reference.
+
+```{r, fig.width=8, fig.height=7}
+kde_5km <- density(
+  accident_ppp_unmarked,
+  sigma = 5000,
+  edge = TRUE,
+  kernel = "gaussian"
+)
+
+plot(kde_5km, main = "Kernel density of reported accidents, 5 km bandwidth")
+plot(accident_ppp_unmarked, add = TRUE, pch = 20, cex = 0.18, col = "black")
+```
+
+The KDE highlights local concentration rather than only showing raw points. A 5 km bandwidth gives a regional view. It smooths the data, so the map should not be read as an exact boundary of an accident hotspot.
+
+### Quarterly spatial change
+
+The four quarters have equal three month durations, so their raw KDE surfaces can be compared on one common colour scale. This checks whether the main spatial concentration is stable through the year or driven by one period.
+
+```{r}
+accidents_sf <- accidents_sf %>%
+  mutate(quarter = factor(
+    paste0("Q", quarter(incident_datetime)),
+    levels = paste0("Q", 1:4)
+  ))
+
+quarter_patterns <- map(levels(accidents_sf$quarter), function(q) {
+  quarter_points <- accidents_sf$quarter == q
+  ppp(
+    x = accident_coords[quarter_points, "X"],
+    y = accident_coords[quarter_points, "Y"],
+    window = accident_window
+  )
+})
+
+quarter_kdes <- map(
+  quarter_patterns,
+  ~ density(.x, sigma = 5000, edge = TRUE, kernel = "gaussian")
+)
+
+quarter_zmax <- max(map_dbl(
+  quarter_kdes,
+  ~ max(.x$v, na.rm = TRUE)
+))
+
+kable(quarter_counts)
+```
+
+```{r, fig.width=10, fig.height=8}
+par(mfrow = c(2, 2), mar = c(3, 3, 3, 3))
+walk2(quarter_kdes, levels(accidents_sf$quarter), function(kde, q) {
+  plot(
+    kde,
+    main = paste0(q, ": ", quarter_counts$n[quarter_counts$quarter == q], " records"),
+    zlim = c(0, quarter_zmax)
+  )
+})
+par(mfrow = c(1, 1))
+```
+
+The total rises from 731 records in Q1 to 1,128 in Q4. The central and eastern concentration remains visible in every quarter, while the surface becomes stronger and more connected in the second half of the year. This suggests a persistent spatial structure with an increase in reported events, rather than a hotspot that appears in only one quarter.
+
+### Animated quarterly point pattern
+
+The static KDE panels are best for direct comparison. The animated plot below adds a second view: use Play or the slider to move through the four quarterly point patterns, and hover over a point to inspect the record.
+
+```{r}
+animated_points <- accidents_sf %>%
+  st_drop_geometry() %>%
+  bind_cols(as_tibble(st_coordinates(accidents_sf))) %>%
+  mutate(
+    X_km = X / 1000,
+    Y_km = Y / 1000,
+    hover_text = paste0(
+      "<strong>", quarter, "</strong>",
+      "<br>Province: ", province_en,
+      "<br>Time: ", format(incident_datetime, "%d %b %H:%M"),
+      "<br>Type: ", fatality_class
+    )
+  )
+
+boundary_lines <- st_coordinates(
+  st_cast(st_geometry(gma_boundary), "MULTILINESTRING")
+) %>%
+  as_tibble() %>%
+  mutate(
+    X_km = X / 1000,
+    Y_km = Y / 1000,
+    boundary_group = interaction(L1, L2, drop = TRUE)
+  )
+
+plot_ly() %>%
+  add_trace(
+    data = boundary_lines,
+    x = ~X_km,
+    y = ~Y_km,
+    split = ~boundary_group,
+    type = "scatter",
+    mode = "lines",
+    line = list(color = "#4b5563", width = 1),
+    hoverinfo = "skip",
+    showlegend = FALSE
+  ) %>%
+  add_trace(
+    data = animated_points,
+    x = ~X_km,
+    y = ~Y_km,
+    frame = ~quarter,
+    text = ~hover_text,
+    hoverinfo = "text",
+    type = "scattergl",
+    mode = "markers",
+    marker = list(color = "#d7301f", size = 5, opacity = 0.45),
+    showlegend = FALSE
+  ) %>%
+  layout(
+    title = "Reported accident locations by quarter",
+    xaxis = list(title = "Easting in km", scaleanchor = "y", scaleratio = 1),
+    yaxis = list(title = "Northing in km"),
+    margin = list(l = 65, r = 20, b = 55, t = 60)
+  ) %>%
+  animation_opts(frame = 900, transition = 250, redraw = FALSE) %>%
+  animation_slider(currentvalue = list(prefix = "Quarter: "))
+```
+
+The animation is an exploratory aid. It shows that the main urban concentration remains visible as the quarterly count changes. The four static KDE panels above remain the stronger evidence because they use one common scale.
+
+## Second order analysis
+
+Second order analysis asks how events relate to other events across distance. The reference model is complete spatial randomness, or CSR. Under CSR, events are placed independently and uniformly inside the study window. This is a simple benchmark. It is useful for detecting departure from random placement, but it is not a complete model of traffic or road design.
+
+### Nearest neighbour and Clark Evans test
+
+```{r}
+nearest_distances <- nndist(accident_ppp_unmarked)
+
+nearest_summary <- tibble(
+  minimum_m = min(nearest_distances),
+  median_m = median(nearest_distances),
+  mean_m = mean(nearest_distances),
+  ninetieth_percentile_m = quantile(nearest_distances, 0.9)
+) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
+
+kable(nearest_summary)
+```
+
+```{r, fig.width=9, fig.height=5}
+ggplot(tibble(nearest_distance_m = nearest_distances), aes(x = nearest_distance_m)) +
+  geom_histogram(
+    binwidth = 25,
+    boundary = 0,
+    fill = "#2c7fb8",
+    color = "white"
+  ) +
+  geom_vline(
+    xintercept = median(nearest_distances),
+    color = "#d7301f",
+    linewidth = 0.8,
+    linetype = 2
+  ) +
+  coord_cartesian(xlim = c(0, 1000)) +
+  labs(
+    title = "Nearest neighbour distances, displayed to 1 km",
+    subtitle = "The dashed line marks the median distance",
+    x = "Distance in metres",
+    y = "Number of events"
+  ) +
+  theme_minimal()
+```
+
+The median nearest neighbour distance is about 34 m, while the mean is about 192 m. The long right tail raises the mean, and the zero distances reflect repeated reported coordinates. The distribution therefore motivates both a nearest neighbour test and the separate coordinate jitter check below.
+
+```{r}
+clark_evans_z <- clarkevans.test(
+  accident_ppp_unmarked,
+  correction = "none",
+  alternative = "clustered"
+)
+
+clark_evans_mc <- clarkevans.test(
+  accident_ppp_unmarked,
+  correction = "none",
+  alternative = "clustered",
+  method = "MonteCarlo",
+  nsim = 39
+)
+
+clark_evans_table <- tibble(
+  test = c("Clark Evans z test", "Clark Evans Monte Carlo"),
+  R_value = c(
+    unname(clark_evans_z$statistic["R"]),
+    unname(clark_evans_mc$statistic["R"])
+  ),
+  p_value = c(clark_evans_z$p.value, clark_evans_mc$p.value)
+) %>%
+  mutate(R_value = round(R_value, 4))
+
+kable(clark_evans_table)
+```
+
+The (R) value is well below 1 and the test supports the clustered alternative. In practical terms, the observed nearest neighbour distances are much shorter than expected under CSR. The Monte Carlo result uses 39 simulated CSR patterns with the same number of points. It is a small simulation for a transparent and quick report, so it should be read as supporting evidence rather than a final probability statement.
+
+### Repeated coordinate sensitivity
+
+There are 321 coordinate rows that repeat an earlier longitude and latitude pair. The records have different accident IDs, so they remain in the main analysis. However, repeated geocoding locations can make the nearest neighbour result look more clustered at very short distances. I therefore repeat the Clark Evans calculation after randomly moving every point by at most 25 m and 100 m. These distances are very small compared with the 5 km KDE and 15 km K function ranges.
+
+```{r}
+set.seed(626)
+
+jitter_patterns <- list(
+  "Original coordinates" = accident_ppp_unmarked,
+  "25 m jitter" = rjitter(accident_ppp_unmarked, radius = 25),
+  "100 m jitter" = rjitter(accident_ppp_unmarked, radius = 100)
+)
+
+jitter_sensitivity <- imap_dfr(jitter_patterns, function(pattern, label) {
+  test <- clarkevans.test(
+    pattern,
+    correction = "none",
+    alternative = "clustered"
+  )
+
+  tibble(
+    pattern = label,
+    Clark_Evans_R = unname(test$statistic["R"]),
+    p_value = test$p.value
+  )
+}) %>%
+  mutate(
+    Clark_Evans_R = round(Clark_Evans_R, 4),
+    p_value = signif(p_value, 3)
+  )
+
+kable(jitter_sensitivity)
+```
+
+The R value rises from about 0.264 to about 0.270 with 25 m jitter and 0.295 with 100 m jitter. All three values remain far below 1. Repeated coordinates strengthen the very shortest distance signal, but they do not explain the overall clustering result.
+
+### G and F functions
+
+The G function describes the distance from each event to its nearest other event. The F function describes the distance from random locations in the window to the nearest event. I use the Kaplan Meier style correction available in spatstat and compare the observed curves with CSR envelopes.
+
+```{r}
+g_csr <- envelope(
+  accident_ppp_unmarked,
+  Gest,
+  nsim = 39,
+  nrank = 1,
+  correction = "rs",
+  rmax = 5000,
+  nr = 64,
+  verbose = FALSE
+)
+
+f_csr <- envelope(
+  accident_ppp_unmarked,
+  Fest,
+  nsim = 39,
+  nrank = 1,
+  correction = "rs",
+  rmax = 5000,
+  nr = 64,
+  verbose = FALSE
+)
+```
+
+```{r, fig.width=10, fig.height=5}
+par(mfrow = c(1, 2))
+plot(g_csr, main = "G function and CSR envelope")
+plot(f_csr, main = "F function and CSR envelope")
+par(mfrow = c(1, 1))
+```
+
+At short distances, the observed G curve is above the CSR envelope. This means that very close event pairs occur more often than the CSR reference suggests. The observed F curve is below the CSR envelope, which is also consistent with clustering because random locations are more likely to fall in large empty parts of the window. At larger distances, edge effects and the shape of the study window become more important.
+
+### K function with a Monte Carlo envelope
+
+The K function counts neighbours within increasing distance bands. I use Ripley isotropic correction and a 39 simulation CSR envelope. The distance range is limited to 15 km to keep the interpretation focused on local and regional interaction.
+
+```{r}
+set.seed(626)
+
+k_csr <- envelope(
+  accident_ppp_unmarked,
+  Kest,
+  nsim = 39,
+  nrank = 1,
+  correction = "Ripley",
+  rmax = 15000,
+  nr = 64,
+  verbose = FALSE
+)
+```
+
+```{r, fig.width=8, fig.height=6}
+plot(k_csr, main = "K function with Monte Carlo CSR envelope")
+```
+
+The observed K curve is above the simulation envelope across the selected range. This supports clustering beyond the variation expected from a homogeneous CSR process. K uses all neighbours within a distance, so it gives a broader view than the nearest neighbour result.
+
+### Inhomogeneous K sensitivity
+
+The homogeneous CSR comparison assumes a constant event intensity across the study window. The KDE maps show that this is unrealistic here. I therefore estimate a 5 km spatial intensity surface and use leave one out values at the accident points in an inhomogeneous K function. This is a sensitivity check for the large scale trend, not an exposure adjusted risk model.
+
+```{r}
+lambda_5km_points <- density(
+  accident_ppp_unmarked,
+  sigma = 5000,
+  edge = TRUE,
+  at = "points",
+  leaveoneout = TRUE,
+  kernel = "gaussian"
+)
+
+k_inhom <- Kinhom(
+  accident_ppp_unmarked,
+  lambda = lambda_5km_points,
+  correction = "translate",
+  rmax = 15000,
+  nr = 64
+)
+
+l_inhom <- Linhom(
+  accident_ppp_unmarked,
+  lambda = lambda_5km_points,
+  correction = "translate",
+  rmax = 15000,
+  nr = 64
+)
+
+inhom_k_summary <- tibble(
+  distance_km = c(1, 5, 10, 15)
+) %>%
+  mutate(
+    row_id = map_int(distance_km, ~ which.min(abs(k_inhom$r - .x * 1000))),
+    observed_K = k_inhom$trans[row_id],
+    CSR_K = k_inhom$theo[row_id],
+    observed_to_CSR = observed_K / CSR_K
+  ) %>%
+  select(-row_id) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
+
+kable(inhom_k_summary)
+```
+
+```{r, fig.width=8, fig.height=6}
+plot(
+  l_inhom,
+  . - r ~ r,
+  main = "Inhomogeneous L function: residual clustering"
+)
+abline(h = 0, col = "red", lty = 2)
+```
+
+After the broad 5 km intensity trend is allowed for, the observed K value is about 4.29 times the CSR value at 1 km and about 1.04 times the CSR value at 5 km. The inhomogeneous L curve is positive at short distances and crosses the CSR baseline around 5 km. The strongest evidence therefore concerns local interaction within roughly 5 km, rather than a uniform clustering claim across the full 15 km range.
+
+## Integration and sensitivity analysis
+
+The first order results show strong differences in the number and intensity of reported events across the study area. The homogeneous CSR tests show that events are closer together than independent uniform points. The inhomogeneous K sensitivity adds an important qualification: after allowing for the broad 5 km intensity trend, residual clustering remains strongest below about 5 km. This separates broad urban concentration from shorter distance interaction more clearly than a single CSR comparison.
+
+### Bandwidth sensitivity
+
+KDE depends on the bandwidth. I compare 3 km, 5 km, and 10 km bandwidths. The smaller bandwidth shows local detail. The larger bandwidth gives a smoother regional pattern.
+
+```{r}
+bandwidths <- c(3000, 5000, 10000)
+
+kde_sensitivity <- tibble(
+  bandwidth_km = bandwidths / 1000,
+  max_density_per_sqkm = map_dbl(bandwidths, function(bandwidth) {
+    kde <- density(
+      accident_ppp_unmarked,
+      sigma = bandwidth,
+      edge = TRUE,
+      kernel = "gaussian"
+    )
+    max(kde$v, na.rm = TRUE) * 1000000
+  })
+) %>%
+  mutate(max_density_per_sqkm = round(max_density_per_sqkm, 2))
+
+kable(kde_sensitivity)
+```
+
+```{r, fig.width=12, fig.height=4}
+par(mfrow = c(1, 3))
+for (bandwidth in bandwidths) {
+  kde <- density(
+    accident_ppp_unmarked,
+    sigma = bandwidth,
+    edge = TRUE,
+    kernel = "gaussian"
+  )
+  plot(
+    kde,
+    main = paste0(bandwidth / 1000, " km bandwidth")
+  )
+}
+par(mfrow = c(1, 1))
+```
+
+The detailed location of the highest KDE values changes when the bandwidth changes, but the broad concentration in the central and eastern part of the study window remains. This makes the broad spatial conclusion more stable than any one small hotspot boundary. The bandwidth is therefore a presentation choice as well as an analytical parameter.
+
+## Value added analysis: fatal and nonfatal event interaction
+
+The main analysis treats all accident rows as one event type. As a small extension, I mark each event as fatal when number_of_fatalities is greater than zero, and otherwise as nonfatal. The question is whether fatal events are located near nonfatal events more often than the Poisson reference would suggest. This does not estimate fatality risk. It only examines the spatial relationship between the two event labels.
+
+```{r}
+fatality_counts <- accidents_sf %>%
+  st_drop_geometry() %>%
+  count(fatality_class, name = "events")
+
+kable(fatality_counts)
+```
+
+```{r}
+marked_ppp <- ppp(
+  x = accident_coords[, "X"],
+  y = accident_coords[, "Y"],
+  window = accident_window,
+  marks = factor(
+    accidents_sf$fatality_class,
+    levels = c("Fatal event", "Nonfatal event")
+  )
+)
+
+fatal_ppp <- unmark(marked_ppp[marks(marked_ppp) == "Fatal event"])
+nonfatal_ppp <- unmark(marked_ppp[marks(marked_ppp) == "Nonfatal event"])
+
+fatal_relative_kde <- density(
+  fatal_ppp,
+  sigma = 5000,
+  edge = TRUE,
+  kernel = "gaussian"
+) / npoints(fatal_ppp)
+
+nonfatal_relative_kde <- density(
+  nonfatal_ppp,
+  sigma = 5000,
+  edge = TRUE,
+  kernel = "gaussian"
+) / npoints(nonfatal_ppp)
+
+relative_kde_zmax <- max(
+  fatal_relative_kde$v,
+  nonfatal_relative_kde$v,
+  na.rm = TRUE
+)
+
+relative_surface_correlation <- cor(
+  as.vector(fatal_relative_kde$v),
+  as.vector(nonfatal_relative_kde$v),
+  method = "spearman",
+  use = "complete.obs"
+)
+
+k_cross <- Kcross(
+  marked_ppp,
+  i = "Fatal event",
+  j = "Nonfatal event",
+  correction = "Ripley",
+  rmax = 15000,
+  nr = 64
+)
+```
+
+```{r, fig.width=10, fig.height=5}
+par(mfrow = c(1, 2), mar = c(4, 3, 3, 3))
+plot(
+  fatal_relative_kde,
+  main = "Fatal events: density per event",
+  zlim = c(0, relative_kde_zmax)
+)
+plot(
+  nonfatal_relative_kde,
+  main = "Nonfatal events: density per event",
+  zlim = c(0, relative_kde_zmax)
+)
+par(mfrow = c(1, 1))
+```
+
+Each surface is divided by its number of events, so the maps compare relative spatial shape rather than the much larger nonfatal count. Their pixel values have a Spearman correlation of `r round(relative_surface_correlation, 2)`. Both types share a broad urban pattern, but the agreement is not exact.
+
+```{r, fig.width=8, fig.height=6}
+plot(
+  k_cross,
+  main = "Cross K with an independent Poisson reference"
+)
+```
+
+```{r}
+cross_k_summary <- tibble(
+  distance_km = c(0.5, 1, 5, 10, 15)
+) %>%
+  mutate(
+    row_id = map_int(distance_km, ~ which.min(abs(k_cross$r - .x * 1000))),
+    observed = k_cross$iso[row_id],
+    poisson_reference = k_cross$theo[row_id],
+    observed_to_reference = observed / poisson_reference
+  ) %>%
+  select(-row_id) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+kable(cross_k_summary)
+```
+
+The cross K curve is above the independent Poisson reference in the selected range. This first result mainly shows that both event types occupy the same nonuniform urban region. It does not yet establish attraction between the labels.
+
+### Random labelling Cross K envelope
+
+A stricter comparison keeps every accident location fixed and randomly reassigns the 158 fatal labels among the 3,586 events. This asks whether fatal and nonfatal labels mix differently from random labelling, given the observed overall accident pattern.
+
+```{r}
+set.seed(626)
+
+k_cross_random_label <- envelope(
+  marked_ppp,
+  Kcross,
+  i = "Fatal event",
+  j = "Nonfatal event",
+  simulate = expression(rlabel(marked_ppp)),
+  nsim = 39,
+  nrank = 1,
+  correction = "Ripley",
+  rmax = 15000,
+  nr = 64,
+  verbose = FALSE
+)
+```
+
+```{r, fig.width=8, fig.height=6}
+plot(
+  k_cross_random_label,
+  main = "Cross K envelope under random labelling"
+)
+```
+
+The observed curve is below the random labelling envelope across the selected distance range. Conditional on the combined accident pattern, fatal events have fewer nearby nonfatal neighbours than expected from randomly assigned labels. This can reflect spatial separation in the roads or provinces where fatal outcomes are recorded. It should not be interpreted as protection or causation because the fatal sample is small and exposure and road type are unavailable.
+
+## Public safety planning and management
+
+The results can support an initial screening workflow for road safety planning. First, the province summary and KDE can help agencies decide where to review road segments, junctions, and response coverage. Bangkok and the nearby provinces have many reported records, but the counts should be checked against traffic volume and road length before funds are allocated.
+
+Second, the monthly and hourly patterns can help with staffing and patrol planning. The figures show when reports are more common in this dataset. A transport agency could compare these time periods with traffic flow, weather, holidays, and road works before changing schedules.
+
+Third, the inhomogeneous K result narrows the field review scale. The strongest residual interaction occurs within about 5 km after the broad intensity trend is considered. Nearby events may reflect repeated issues on the same corridors, junction design, speed conditions, or reporting concentration. A practical next step would be to connect the points to a road network and inspect the highest concentration segments in the field.
+
+The analysis does not support a direct claim that a province is more dangerous. The data do not include exposure, traffic volume, road length, population, enforcement, or the number of trips. The boundary also combines dense urban districts with less dense outer areas. The recommendations should therefore be used to prioritise further investigation and not as a final risk ranking.
+
+## Limitations and assumptions
+
+The main assumptions and their effects are listed below.
+
+```{r}
+assumptions <- tribble(
+  ~decision, ~reason, ~limitation,
+  "Use six ADM1 polygons as the spatial window", "Matches the Bangkok Greater Metropolitan Area definition used here", "A province boundary is not a road network and may include areas with different exposure",
+  "Use EPSG:32647", "Distance units are metres in a local projected CRS", "Projection distortion is small for this region but not zero",
+  "Use CSR as the null model", "Provides a simple baseline for testing spatial departure", "CSR ignores traffic, roads, population, and reporting processes",
+  "Keep duplicate coordinates with different IDs", "They are separate reported events", "Repeated geocoding locations can increase very short distance clustering",
+  "Use 25 m and 100 m coordinate jitter", "Checks whether repeated locations drive the nearest neighbour result", "Jitter changes every point slightly and does not recover the true accident position",
+  "Use 5 km as the main KDE bandwidth", "Shows regional concentration without excessive pixel level detail", "Different bandwidths move the apparent peak and change smoothing",
+  "Use a 5 km estimated intensity for Kinhom", "Checks short distance interaction after a broad trend is allowed", "The estimated intensity is derived from the same event data and is not traffic exposure",
+  "Use 39 Monte Carlo patterns", "Keeps the report reproducible and reasonably quick to render", "The simulation envelope is less precise than a much larger simulation",
+  "Use reported records as events", "It follows the supplied accident table", "Under reporting and different reporting practices may distort the observed pattern"
+)
+
+kable(assumptions)
+```
+
+The strongest limitation is the lack of an exposure denominator. A concentration of records can mean more traffic, more roads, more people, greater danger, or better reporting. The current analysis separates what the point pattern shows from what would require additional data.
+
+## Conclusion
+
+After filtering the supplied 2019 to 2022 table to 2022 and the six selected provinces, 3,586 valid accident points remained inside the study window. First order results show clear differences across provinces, months, hours, quarters, quadrats, and local density. Homogeneous CSR tests give consistent evidence of clustering. The duplicate coordinate sensitivity check keeps the Clark Evans R value well below 1 after 25 m and 100 m jitter. After allowing for the broad 5 km intensity trend, the strongest residual clustering remains within roughly 5 km.
+
+The marked analysis gives a useful qualification. Fatal and nonfatal events share the broad urban concentration and the simple Poisson Cross K curve is high. Once all accident locations are fixed and only the labels are randomised, the observed Cross K curve falls below the envelope. The data therefore support broad co location but not attraction between fatal and nonfatal labels.
+
+The safest conclusion is that reported accidents form concentrated spatial patterns that deserve closer road level investigation. The results are useful for identifying where to ask the next question. They are not enough to estimate causal effects or rank danger without traffic exposure and road network information.
+
+## References
+
+-   Course brief: [Take home Exercise 1 requirements](https://isss626-ay2026-27aug.netlify.app/take-home_ex01)
+-   Dataset: [Thailand Road Accident 2019 to 2022](https://www.kaggle.com/datasets/thaweewatboy/thailand-road-accident-2019-2022)
+-   Boundary data: [geoBoundaries](https://www.geoboundaries.org/)
+-   Gimond, M. (2018). [Introduction to GIS and Spatial Analysis](https://mgimond.github.io/Spatial/).
+-   Lovelace, R., Nowosad, J., and Muenchow, J. (2024). [Geocomputation with R](https://r.geocompx.org/).
+-   Pebesma, E., and Bivand, R. (2025). [Spatial Data Science with Applications in R](https://r-spatial.org/book/).
+
+## AI use declaration
+
+Generative AI was used to help organise the Quarto page, check wording, and troubleshoot software errors. The data choices, code execution, output checks, interpretation, limitations, and final conclusions must be reviewed and understood by the student before submission.

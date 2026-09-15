@@ -1,0 +1,59 @@
+:root {
+  --report-ink: #1f2937;
+  --report-muted: #5f6b76;
+  --report-accent: #0f766e;
+  --report-warm: #c2410c;
+  --report-line: #d9e2e8;
+}
+
+body {
+  color: var(--report-ink);
+  line-height: 1.62;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0;
+}
+
+h2 {
+  border-bottom: 2px solid var(--report-accent);
+  padding-bottom: 0.3rem;
+  margin-top: 2.4rem;
+}
+
+h3 {
+  color: var(--report-accent);
+  margin-top: 1.8rem;
+}
+
+blockquote {
+  border-left: 4px solid var(--report-warm);
+  color: var(--report-muted);
+  padding: 0.35rem 1rem;
+}
+
+table {
+  border-top: 2px solid var(--report-accent);
+  border-bottom: 1px solid var(--report-line);
+}
+
+table thead th {
+  background: #edf7f5;
+}
+
+table tbody tr:nth-child(even) {
+  background: #f7f9fa;
+}
+
+.cell-output-display img,
+.leaflet,
+.plotly {
+  border: 1px solid var(--report-line);
+}
+
+.toc-active .nav-link.active {
+  color: var(--report-accent);
+  border-left-color: var(--report-accent);
+}

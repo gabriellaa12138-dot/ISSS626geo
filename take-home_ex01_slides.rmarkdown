@@ -1,0 +1,478 @@
+---
+title: "Road Traffic Accident Patterns in Bangkok"
+subtitle: "Take home Exercise 1, Option B"
+author: "Ziying Zhou"
+format:
+  revealjs:
+    slide-number: true
+    transition: none
+    scrollable: true
+    css: take-home-slides.css
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+library(sf)
+library(spatstat)
+library(tidyverse)
+library(lubridate)
+
+set.seed(1234)
+
+gma_iso <- c("TH-10", "TH-11", "TH-12", "TH-13", "TH-73", "TH-74")
+
+tha_adm1 <- st_read(
+  "data/geospatial/geoBoundaries-THA-ADM1.geojson",
+  quiet = TRUE
+) %>%
+  st_make_valid()
+
+gma_provinces <- tha_adm1 %>%
+  filter(shapeISO %in% gma_iso)
+
+gma_provinces_utm <- st_transform(gma_provinces, 32647)
+gma_boundary <- gma_provinces_utm %>%
+  summarise(area_name = "Bangkok Greater Metropolitan Area", .groups = "drop")
+
+accidents <- read_csv(
+  "data/aspatial/thailand_road_accident_2022_bangkok_gma.csv",
+  show_col_types = FALSE
+) %>%
+  mutate(
+    incident_datetime = ymd_hms(incident_datetime, quiet = TRUE),
+    number_of_fatalities = as.numeric(number_of_fatalities),
+    month_num = month(incident_datetime),
+    month_name = factor(month.name[month_num], levels = month.name),
+    hour = hour(incident_datetime),
+    fatality_class = if_else(
+      coalesce(number_of_fatalities, 0) > 0,
+      "Fatal event",
+      "Nonfatal event"
+    )
+  ) %>%
+  filter(
+    year(incident_datetime) == 2022,
+    !is.na(latitude),
+    !is.na(longitude)
+  ) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326, remove = FALSE) %>%
+  st_transform(32647)
+
+accidents <- accidents[lengths(st_intersects(accidents, gma_boundary)) > 0, ]
+
+province_lookup <- tibble(
+  shapeISO = gma_iso,
+  province_en = c(
+    "Bangkok", "Samut Prakan", "Nonthaburi",
+    "Pathum Thani", "Nakhon Pathom", "Samut Sakhon"
+  )
+)
+
+province_counts <- accidents %>%
+  st_drop_geometry() %>%
+  count(province_en, name = "accidents")
+
+province_events <- gma_provinces_utm %>%
+  left_join(province_lookup, by = "shapeISO") %>%
+  left_join(province_counts, by = "province_en") %>%
+  mutate(accidents = replace_na(accidents, 0L))
+
+province_plot <- ggplot(province_events) +
+  geom_sf(aes(fill = accidents), color = "white", linewidth = 0.4) +
+  geom_sf_text(aes(label = province_en), size = 2.7) +
+  scale_fill_gradient(low = "#fee8c8", high = "#e34a33") +
+  labs(title = "Reported accidents by province", fill = "Records") +
+  theme_void() +
+  theme(legend.position = "right", plot.title = element_text(size = 13, face = "bold"))
+
+event_map <- ggplot() +
+  geom_sf(data = gma_boundary, fill = "grey94", color = "grey60", linewidth = 0.35) +
+  geom_sf(data = accidents, color = "#d7301f", size = 0.18, alpha = 0.35) +
+  labs(title = "Reported road accident locations in 2022") +
+  theme_void() +
+  theme(plot.title = element_text(size = 13, face = "bold"))
+
+monthly <- accidents %>%
+  st_drop_geometry() %>%
+  count(month_num) %>%
+  complete(month_num = 1:12, fill = list(n = 0))
+
+hourly <- accidents %>%
+  st_drop_geometry() %>%
+  count(hour) %>%
+  complete(hour = 0:23, fill = list(n = 0))
+
+month_hour <- accidents %>%
+  st_drop_geometry() %>%
+  count(month_num, hour) %>%
+  complete(month_num = 1:12, hour = 0:23, fill = list(n = 0)) %>%
+  mutate(month = factor(month.abb[month_num], levels = month.abb))
+
+quarter_counts <- accidents %>%
+  st_drop_geometry() %>%
+  mutate(quarter = factor(
+    paste0("Q", quarter(incident_datetime)),
+    levels = paste0("Q", 1:4)
+  )) %>%
+  count(quarter)
+
+coords <- st_coordinates(accidents)
+accident_window <- as.owin(st_geometry(gma_boundary))
+accident_ppp <- ppp(coords[, "X"], coords[, "Y"], accident_window)
+accident_ppp_unmarked <- unmark(accident_ppp)
+kde_3km <- density(accident_ppp_unmarked, sigma = 3000, edge = TRUE, kernel = "gaussian")
+kde_5km <- density(accident_ppp_unmarked, sigma = 5000, edge = TRUE, kernel = "gaussian")
+kde_10km <- density(accident_ppp_unmarked, sigma = 10000, edge = TRUE, kernel = "gaussian")
+
+quadrat_counts <- quadratcount(accident_ppp_unmarked, nx = 6, ny = 6)
+
+accidents <- accidents %>%
+  mutate(quarter = factor(
+    paste0("Q", quarter(incident_datetime)),
+    levels = paste0("Q", 1:4)
+  ))
+
+quarter_patterns <- map(levels(accidents$quarter), function(q) {
+  selected <- accidents$quarter == q
+  ppp(coords[selected, "X"], coords[selected, "Y"], accident_window)
+})
+
+quarter_kdes <- map(
+  quarter_patterns,
+  ~ density(.x, sigma = 5000, edge = TRUE, kernel = "gaussian")
+)
+
+quarter_zmax <- max(map_dbl(
+  quarter_kdes,
+  ~ max(.x$v, na.rm = TRUE)
+))
+
+set.seed(626)
+
+jitter_patterns <- list(
+  "Original coordinates" = accident_ppp_unmarked,
+  "25 m jitter" = rjitter(accident_ppp_unmarked, radius = 25),
+  "100 m jitter" = rjitter(accident_ppp_unmarked, radius = 100)
+)
+
+jitter_sensitivity <- imap_dfr(jitter_patterns, function(pattern, label) {
+  test <- clarkevans.test(
+    pattern,
+    correction = "none",
+    alternative = "clustered"
+  )
+
+  tibble(
+    pattern = label,
+    Clark_Evans_R = unname(test$statistic["R"])
+  )
+}) %>%
+  mutate(Clark_Evans_R = round(Clark_Evans_R, 4))
+
+lambda_5km_points <- density(
+  accident_ppp_unmarked,
+  sigma = 5000,
+  edge = TRUE,
+  at = "points",
+  leaveoneout = TRUE,
+  kernel = "gaussian"
+)
+
+l_inhom <- Linhom(
+  accident_ppp_unmarked,
+  lambda = lambda_5km_points,
+  correction = "translate",
+  rmax = 15000,
+  nr = 64
+)
+```
+
+## Data and study area
+
+How were reported road traffic accidents distributed across the Bangkok Greater Metropolitan Area in 2022?
+
+The analysis examines event concentration, timing, and interaction between nearby events.
+
+-   Accident records: Thailand Road Accident 2019 to 2022, restricted to 2022
+-   Boundary: six ADM1 provinces from geoBoundaries
+-   Study window: Bangkok, Samut Prakan, Nonthaburi, Pathum Thani, Samut Sakhon, and Nakhon Pathom
+-   Projected CRS: EPSG:32647, with metre based distances
+
+```{r, fig.width=9, fig.height=4.6}
+event_map
+```
+
+The raw point map provides a first check of the event locations. It shows more reports in the built up central and eastern part of the study window.
+
+## Data quality and province distribution
+
+```{r}
+quality <- tibble(
+  item = c(
+    "Rows in local extract",
+    "Missing coordinate rows",
+    "Outside study window",
+    "Repeated coordinate rows",
+    "Final point events"
+  ),
+  value = c(3779, 189, 4, sum(duplicated(coords)), nrow(accidents))
+)
+knitr::kable(quality)
+```
+
+Records with different event IDs but the same coordinates are retained. They may represent separate reported events at one location.
+
+```{r, fig.width=9, fig.height=4.2}
+province_plot
+```
+
+Bangkok has the largest number of records, followed by Samut Prakan and Pathum Thani. This is a count map, so it should not be read as an exposure adjusted risk map.
+
+## Time pattern across the year and day
+
+```{r, fig.width=11, fig.height=2.6}
+par(mfrow = c(1, 2), mar = c(5, 4, 3, 1))
+barplot(
+  monthly$n,
+  names.arg = month.abb,
+  col = "#2c7fb8",
+  las = 2,
+  main = "Monthly totals",
+  ylab = "Records"
+)
+barplot(
+  hourly$n,
+  names.arg = 0:23,
+  col = "#41ab5d",
+  main = "Hourly totals",
+  xlab = "Hour",
+  ylab = "Records"
+)
+par(mfrow = c(1, 1))
+```
+
+```{r, fig.width=11, fig.height=3.2}
+ggplot(month_hour, aes(x = hour, y = month, fill = n)) +
+  geom_tile(color = "white", linewidth = 0.12) +
+  scale_fill_viridis_c(option = "C", name = "Records") +
+  scale_x_continuous(breaks = seq(0, 23, 2)) +
+  labs(title = "Month and hour pattern", x = "Hour", y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid = element_blank())
+```
+
+Q4 has the highest total. The largest hourly total is at 19:00, but the heatmap shows several busy periods rather than one isolated hour.
+
+## Quadrat counts and regional density
+
+```{r, fig.width=11, fig.height=5.1}
+par(mfrow = c(1, 2), mar = c(4, 3, 3, 3))
+plot(quadrat_counts, main = "Counts in a 6 by 6 grid", col = "grey30")
+plot(kde_5km, main = "KDE with a 5 km bandwidth")
+plot(accident_ppp_unmarked, add = TRUE, pch = 20, cex = 0.10, col = "black")
+par(mfrow = c(1, 1))
+```
+
+```{r}
+set.seed(626)
+quadrat_mc <- quadrat.test(
+  accident_ppp_unmarked,
+  nx = 6,
+  ny = 6,
+  alternative = "clustered",
+  method = "MonteCarlo",
+  nsim = 199
+)
+```
+
+The grid shows the raw count contrast, while KDE shows the smoothed pattern. The quadrat Monte Carlo p value is `r format.pval(quadrat_mc$p.value, digits = 3)`, supporting a nonuniform intensity.
+
+## Quarterly spatial pattern
+
+```{r, fig.width=10, fig.height=6.5}
+par(mfrow = c(2, 2), mar = c(3, 3, 3, 3))
+walk2(quarter_kdes, levels(accidents$quarter), function(kde, q) {
+  plot(
+    kde,
+    main = paste0(q, ": ", quarter_counts$n[quarter_counts$quarter == q], " records"),
+    zlim = c(0, quarter_zmax)
+  )
+})
+par(mfrow = c(1, 1))
+```
+
+The broad central and eastern concentration persists in all four quarters. Counts rise from 731 in Q1 to 1,128 in Q4, and the surface becomes stronger in the second half of the year.
+
+## KDE bandwidth sensitivity
+
+```{r, fig.width=12, fig.height=4.2}
+par(mfrow = c(1, 3), mar = c(4, 3, 3, 3))
+plot(kde_3km, main = "3 km bandwidth")
+plot(kde_5km, main = "5 km bandwidth")
+plot(kde_10km, main = "10 km bandwidth")
+par(mfrow = c(1, 1))
+```
+
+The 3 km map shows smaller local peaks. The 10 km map smooths them into a broad regional pattern. The central and eastern concentration remains visible in all three maps, so the broad conclusion does not depend on one bandwidth.
+
+## Nearest neighbour evidence
+
+```{r, fig.width=10, fig.height=5.5}
+ce <- clarkevans.test(
+  accident_ppp_unmarked,
+  correction = "none",
+  alternative = "clustered"
+)
+
+g_csr <- envelope(
+  accident_ppp_unmarked,
+  Gest,
+  nsim = 39,
+  nrank = 1,
+  correction = "rs",
+  rmax = 5000,
+  nr = 64,
+  verbose = FALSE
+)
+
+f_csr <- envelope(
+  accident_ppp_unmarked,
+  Fest,
+  nsim = 39,
+  nrank = 1,
+  correction = "rs",
+  rmax = 5000,
+  nr = 64,
+  verbose = FALSE
+)
+
+nearest_distances <- nndist(accident_ppp_unmarked)
+
+par(mfrow = c(1, 3), mar = c(4, 4, 3, 1))
+hist(
+  nearest_distances,
+  breaks = seq(0, ceiling(max(nearest_distances) / 50) * 50, by = 50),
+  xlim = c(0, 1000),
+  col = "#2c7fb8",
+  border = "white",
+  main = "Nearest distances",
+  xlab = "Metres"
+)
+abline(v = median(nearest_distances), col = "#d7301f", lty = 2, lwd = 2)
+plot(g_csr, main = "G function")
+plot(f_csr, main = "F function")
+par(mfrow = c(1, 1))
+```
+
+The median nearest neighbour distance is about 34 m. Clark Evans R is about 0.26, the G curve is high, and the F curve is low relative to CSR. All three results support short distance clustering.
+
+## K function and trend sensitivity
+
+```{r, fig.width=11, fig.height=5.3}
+set.seed(626)
+
+k_csr <- envelope(
+  accident_ppp_unmarked,
+  Kest,
+  nsim = 39,
+  nrank = 1,
+  correction = "Ripley",
+  rmax = 15000,
+  nr = 64,
+  verbose = FALSE
+)
+par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+plot(k_csr, main = "K function and CSR envelope")
+plot(l_inhom, . - r ~ r, main = "Inhomogeneous L minus distance")
+abline(h = 0, col = "red", lty = 2)
+par(mfrow = c(1, 1))
+```
+
+```{r}
+knitr::kable(jitter_sensitivity)
+```
+
+K is above the homogeneous CSR envelope. After allowing for the broad 5 km intensity trend, residual clustering is strongest below about 5 km. Coordinate jitter also leaves R far below 1.
+
+## Fatal and nonfatal spatial patterns
+
+```{r, fig.width=12, fig.height=4.4}
+marked_ppp <- ppp(
+  coords[, "X"],
+  coords[, "Y"],
+  accident_window,
+  marks = factor(
+    accidents$fatality_class,
+    levels = c("Fatal event", "Nonfatal event")
+  )
+)
+
+fatal_ppp <- unmark(marked_ppp[marks(marked_ppp) == "Fatal event"])
+nonfatal_ppp <- unmark(marked_ppp[marks(marked_ppp) == "Nonfatal event"])
+
+fatal_relative_kde <- density(fatal_ppp, sigma = 5000, edge = TRUE) /
+  npoints(fatal_ppp)
+nonfatal_relative_kde <- density(nonfatal_ppp, sigma = 5000, edge = TRUE) /
+  npoints(nonfatal_ppp)
+relative_zmax <- max(
+  fatal_relative_kde$v,
+  nonfatal_relative_kde$v,
+  na.rm = TRUE
+)
+
+set.seed(626)
+k_cross_random_label <- envelope(
+  marked_ppp,
+  Kcross,
+  i = "Fatal event",
+  j = "Nonfatal event",
+  simulate = expression(rlabel(marked_ppp)),
+  nsim = 39,
+  nrank = 1,
+  correction = "Ripley",
+  rmax = 15000,
+  nr = 64,
+  verbose = FALSE
+)
+
+par(mfrow = c(1, 3), mar = c(4, 3, 3, 3))
+plot(fatal_relative_kde, main = "Fatal density per event", zlim = c(0, relative_zmax))
+plot(nonfatal_relative_kde, main = "Nonfatal density per event", zlim = c(0, relative_zmax))
+plot(k_cross_random_label, main = "Cross K under random labelling")
+par(mfrow = c(1, 1))
+```
+
+Both event types share a broad urban pattern. Yet the observed Cross K is below the random labelling envelope. With locations fixed, fatal events have fewer nearby nonfatal neighbours than expected from random labels.
+
+## Main findings and planning use
+
+```{r}
+summary_findings <- tibble(
+  analysis = c("First order", "Time", "Interaction", "Fatal labels", "Data limit"),
+  result = c(
+    "Quadrats and KDE show a persistent central and eastern concentration",
+    "Q4 has 1,128 records compared with 731 in Q1",
+    "Residual clustering is strongest below about 5 km",
+    "Fatal labels show spatial separation under random labelling",
+    "No traffic exposure or road network denominator is available"
+  ),
+  implication = c(
+    "Review corridors and junctions in the broad concentration area",
+    "Compare busy periods with traffic flow, holidays, weather, and road works",
+    "Prioritise local corridor checks instead of one large regional hotspot claim",
+    "Study road class and speed conditions before explaining fatal outcomes",
+    "Do not rank provinces as more dangerous from event counts alone"
+  )
+)
+knitr::kable(summary_findings)
+```
+
+Use the results for screening, not direct risk ranking. The next step is to connect events to road segments and add traffic exposure.
+
+Data: [Thailand Road Accident 2019 to 2022](https://www.kaggle.com/datasets/thaweewatboy/thailand-road-accident-2019-2022), [geoBoundaries](https://www.geoboundaries.org/). Methods: Gimond (2018), Lovelace et al. (2024), Pebesma and Bivand (2025).
+
+Ziying Zhou
+
