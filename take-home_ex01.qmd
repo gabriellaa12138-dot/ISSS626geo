@@ -1157,6 +1157,4 @@ The safest conclusion is that reported accidents form concentrated spatial patte
 -   Lovelace, R., Nowosad, J., and Muenchow, J. (2024). [Geocomputation with R](https://r.geocompx.org/).
 -   Pebesma, E., and Bivand, R. (2025). [Spatial Data Science with Applications in R](https://r-spatial.org/book/).
 
-## AI use declaration
-
-Generative AI was used to help organise the Quarto page, check wording, and troubleshoot software errors. The data choices, code execution, output checks, interpretation, limitations, and final conclusions must be reviewed and understood by the student before submission.
+## 

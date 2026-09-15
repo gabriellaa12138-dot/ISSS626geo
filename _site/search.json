@@ -530,5 +530,82 @@
     "title": "Road Traffic Accident Patterns in Bangkok",
     "section": "Main findings and planning use",
     "text": "Main findings and planning use\n\n\n\n\n\n\n\n\n\n\nanalysis\nresult\nimplication\n\n\n\n\nFirst order\nQuadrats and KDE show a persistent central and eastern concentration\nReview corridors and junctions in the broad concentration area\n\n\nTime\nQ4 has 1,128 records compared with 731 in Q1\nCompare busy periods with traffic flow, holidays, weather, and road works\n\n\nInteraction\nResidual clustering is strongest below about 5 km\nPrioritise local corridor checks instead of one large regional hotspot claim\n\n\nFatal labels\nFatal labels show spatial separation under random labelling\nStudy road class and speed conditions before explaining fatal outcomes\n\n\nData limit\nNo traffic exposure or road network denominator is available\nDo not rank provinces as more dangerous from event counts alone\n\n\n\n\n\nUse the results for screening, not direct risk ranking. The next step is to connect events to road segments and add traffic exposure.\nData: Thailand Road Accident 2019 to 2022, geoBoundaries. Methods: Gimond (2018), Lovelace et al. (2024), Pebesma and Bivand (2025).\nZiying Zhou"
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html",
+    "href": "take-home_ex01_slides.knit.html",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "",
+    "text": "How were reported road traffic accidents distributed across the Bangkok Greater Metropolitan Area in 2022?\nThe analysis examines event concentration, timing, and interaction between nearby events.\n\nAccident records: Thailand Road Accident 2019 to 2022, restricted to 2022\nBoundary: six ADM1 provinces from geoBoundaries\nStudy window: Bangkok, Samut Prakan, Nonthaburi, Pathum Thani, Samut Sakhon, and Nakhon Pathom\nProjected CRS: EPSG:32647, with metre based distances\n\n\n\n\n\n\n\n\n\n\nThe raw point map provides a first check of the event locations. It shows more reports in the built up central and eastern part of the study window."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#data-and-study-area",
+    "href": "take-home_ex01_slides.knit.html#data-and-study-area",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "",
+    "text": "How were reported road traffic accidents distributed across the Bangkok Greater Metropolitan Area in 2022?\nThe analysis examines event concentration, timing, and interaction between nearby events.\n\nAccident records: Thailand Road Accident 2019 to 2022, restricted to 2022\nBoundary: six ADM1 provinces from geoBoundaries\nStudy window: Bangkok, Samut Prakan, Nonthaburi, Pathum Thani, Samut Sakhon, and Nakhon Pathom\nProjected CRS: EPSG:32647, with metre based distances\n\n\n\n\n\n\n\n\n\n\nThe raw point map provides a first check of the event locations. It shows more reports in the built up central and eastern part of the study window."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#data-quality-and-province-distribution",
+    "href": "take-home_ex01_slides.knit.html#data-quality-and-province-distribution",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "Data quality and province distribution",
+    "text": "Data quality and province distribution\n\n\n\n\n\n\n\nitem\nvalue\n\n\n\n\nRows in local extract\n3779\n\n\nMissing coordinate rows\n189\n\n\nOutside study window\n4\n\n\nRepeated coordinate rows\n321\n\n\nFinal point events\n3586\n\n\n\n\n\nDifferent event IDs with the same coordinates are retained as separate records.\n\n\n\n\n\n\n\n\n\n\n\n\nBangkok has the largest number of records, followed by Samut Prakan and Pathum Thani. This is a count map, so it should not be read as an exposure adjusted risk map."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#time-pattern-across-the-year-and-day",
+    "href": "take-home_ex01_slides.knit.html#time-pattern-across-the-year-and-day",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "Time pattern across the year and day",
+    "text": "Time pattern across the year and day\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nQ4 has the highest total. The largest hourly total is at 19:00, but the heatmap shows several busy periods rather than one isolated hour."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#quadrat-counts-and-regional-density",
+    "href": "take-home_ex01_slides.knit.html#quadrat-counts-and-regional-density",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "Quadrat counts and regional density",
+    "text": "Quadrat counts and regional density\n\n\n\n\n\n\n\n\n\nThe grid shows the raw count contrast, while KDE shows the smoothed pattern. The quadrat Monte Carlo p value is 0.005, supporting a nonuniform intensity."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#quarterly-spatial-pattern",
+    "href": "take-home_ex01_slides.knit.html#quarterly-spatial-pattern",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "Quarterly spatial pattern",
+    "text": "Quarterly spatial pattern\n\n\n\n\n\n\n\n\n\nThe broad central and eastern concentration persists in all four quarters. Counts rise from 731 in Q1 to 1,128 in Q4, and the surface becomes stronger in the second half of the year."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#kde-bandwidth-sensitivity",
+    "href": "take-home_ex01_slides.knit.html#kde-bandwidth-sensitivity",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "KDE bandwidth sensitivity",
+    "text": "KDE bandwidth sensitivity\n\n\n\n\n\n\n\n\n\nThe 3 km map shows smaller local peaks. The 10 km map smooths them into a broad regional pattern. The central and eastern concentration remains visible in all three maps, so the broad conclusion does not depend on one bandwidth."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#nearest-neighbour-evidence",
+    "href": "take-home_ex01_slides.knit.html#nearest-neighbour-evidence",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "Nearest neighbour evidence",
+    "text": "Nearest neighbour evidence\n\n\n\n\n\n\n\n\n\nThe median nearest neighbour distance is about 34 m. Clark Evans R is about 0.26, the G curve is high, and the F curve is low relative to CSR. All three results support short distance clustering."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#k-function-and-trend-sensitivity",
+    "href": "take-home_ex01_slides.knit.html#k-function-and-trend-sensitivity",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "K function and trend sensitivity",
+    "text": "K function and trend sensitivity\n\n\n\n\n\n\n\n\n\nK is above the homogeneous CSR envelope. After allowing for the broad 5 km intensity trend, residual clustering is strongest below about 5 km. Coordinate jitter gives R values from 0.264 to 0.295, still far below 1."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#fatal-and-nonfatal-spatial-patterns",
+    "href": "take-home_ex01_slides.knit.html#fatal-and-nonfatal-spatial-patterns",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "Fatal and nonfatal spatial patterns",
+    "text": "Fatal and nonfatal spatial patterns\n\n\n\n\n\n\n\n\n\nBoth event types share a broad urban pattern. Yet the observed Cross K is below the random labelling envelope. With locations fixed, fatal events have fewer nearby nonfatal neighbours than expected from random labels."
+  },
+  {
+    "objectID": "take-home_ex01_slides.knit.html#main-findings-and-planning-use",
+    "href": "take-home_ex01_slides.knit.html#main-findings-and-planning-use",
+    "title": "Road Traffic Accident Patterns in Bangkok",
+    "section": "Main findings and planning use",
+    "text": "Main findings and planning use\n\n\n\n\n\n\n\n\n\n\nanalysis\nresult\nimplication\n\n\n\n\nFirst order\nQuadrats and KDE show a persistent central and eastern concentration\nReview corridors and junctions in the broad concentration area\n\n\nTime\nQ4 has 1,128 records compared with 731 in Q1\nCompare busy periods with traffic flow, holidays, weather, and road works\n\n\nInteraction\nResidual clustering is strongest below about 5 km\nPrioritise local corridor checks instead of one large regional hotspot claim\n\n\nFatal labels\nFatal labels show spatial separation under random labelling\nStudy road class and speed conditions before explaining fatal outcomes\n\n\nData limit\nNo traffic exposure or road network denominator is available\nDo not rank provinces as more dangerous from event counts alone\n\n\n\n\n\nUse the results for screening, not direct risk ranking. The next step is to connect events to road segments and add traffic exposure.\nData: Thailand Road Accident 2019 to 2022, geoBoundaries. Methods: Gimond (2018), Lovelace et al. (2024), Pebesma and Bivand (2025).\nZiying Zhou"
   }
 ]
