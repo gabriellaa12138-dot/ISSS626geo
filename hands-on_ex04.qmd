@@ -71,7 +71,7 @@ tibble(
   kable()
 ```
 
-The result has 88 polygon features and uses WGS 84 geographic coordinates, matching the course example.
+The result has 88 polygon feature and uses WGS 84 geographic coordinates, matching the course example.
 
 ### Import csv file into R environment
 
