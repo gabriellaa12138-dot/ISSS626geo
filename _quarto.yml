@@ -17,6 +17,10 @@ website:
             text: Hands-on 3
           - href: hands-on_ex04.qmd
             text: Hands-on 4
+      - text: In-class
+        menu:
+          - href: In-class Exercise 4.qmd
+            text: In-class Exercise 4
       - text: Take home Exercise
         menu:
           - href: take-home_ex01.qmd
