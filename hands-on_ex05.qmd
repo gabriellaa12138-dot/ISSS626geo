@@ -1,7 +1,7 @@
 ---
 title: "Hands-on Exercise 5: Global and Local Spatial Autocorrelation"
 author: "Zhou Ziying"
-date: "2026-09-22"
+date: "2026-09-20"
 date-modified: today
 execute:
   echo: true
