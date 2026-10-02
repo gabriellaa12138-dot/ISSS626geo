@@ -1,0 +1,838 @@
+---
+title: "Hands-on Exercise 6: Geographical Segmentation with Spatially Constrained Clustering"
+author: "Zhou Ziying"
+date: "2026-09-30"
+date-modified: today
+execute:
+  echo: true
+  eval: true
+  warning: false
+  message: false
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    code-fold: false
+    fig-width: 10
+    fig-height: 6
+---
+
+## Overview
+
+This exercise follows [Chapter 12](https://r4gdsa.netlify.app/chap12.html). I compare ordinary hierarchical clustering, SKATER and ClustGeo using ICT ownership in 55 townships in Shan State, Myanmar. The question is whether places with similar household ICT access also form useful geographical regions.
+
+The data are the Myanmar township boundaries and Shan-ICT.csv used in the course, based on the 2014 census. The files come from the [public copy of the course data](https://github.com/RakenduR/r4gdsa/tree/master/chap05/data). This is the same study area and census table, not a substitute dataset.
+
+The code follows the chapter examples. I change the data paths, save the intermediate RDS before reading it, and make small compatibility or display corrections where needed. The explanations below are my notes on what each step means.
+
+### 12.3.1 Installing and loading R packages
+
+These packages cover spatial data, maps, clustering and the interactive heatmap.
+
+```{r}
+#| label: chapter-12-demo-01
+pacman::p_load(spdep, tmap, sf, ClustGeo, 
+               ggpubr, cluster, factoextra, NbClust,
+               heatmaply, corrplot, psych, tidyverse, GGally)
+
+tmap_mode("plot")
+set.seed(12345)
+dir.create("data/chap12/rds", recursive = TRUE, showWarnings = FALSE)
+```
+
+## 12.4 Data Import and Preparation
+
+### 12.4.1 Importing geospatial data into R environment
+
+The boundary file covers Myanmar. I keep the three parts of Shan State and the township identifiers.
+
+```{r}
+#| label: chapter-12-demo-02
+shan_sf <- st_read(dsn = "data/chap12/geospatial", 
+                   layer = "myanmar_township_boundaries") %>%
+  filter(ST %in% c("Shan (East)", "Shan (North)", "Shan (South)")) %>%
+  select(c(2:7))
+```
+
+```{r}
+#| label: chapter-12-demo-03
+shan_sf
+```
+
+```{r}
+#| label: chapter-12-demo-04
+glimpse(shan_sf)
+```
+
+### 12.4.2 Importing aspatial data into R environment
+
+The census table records households with each ICT item. Counts are useful, but larger townships will usually have more of everything.
+
+```{r}
+#| label: chapter-12-demo-05
+ict <- read_csv ("data/chap12/aspatial/Shan-ICT.csv")
+```
+
+```{r}
+#| label: chapter-12-demo-06
+summary(ict)
+```
+
+### 12.4.3 Derive new variables using dplyr package
+
+Dividing by total households makes townships easier to compare. Multiplying by 1,000 gives ownership per 1,000 households, not percentages.
+
+```{r}
+#| label: chapter-12-demo-07
+ict_derived <- ict %>%
+  mutate(`RADIO_PR` = `Radio`/`Total households`*1000) %>%
+  mutate(`TV_PR` = `Television`/`Total households`*1000) %>%
+  mutate(`LLPHONE_PR` = `Land line phone`/`Total households`*1000) %>%
+  mutate(`MPHONE_PR` = `Mobile phone`/`Total households`*1000) %>%
+  mutate(`COMPUTER_PR` = `Computer`/`Total households`*1000) %>%
+  mutate(`INTERNET_PR` = `Internet at home`/`Total households`*1000) %>%
+  rename(`DT_PCODE` =`District Pcode`,`DT`=`District Name`,
+         `TS_PCODE`=`Township Pcode`, `TS`=`Township Name`,
+         `TT_HOUSEHOLDS`=`Total households`,
+         `RADIO`=`Radio`, `TV`=`Television`, 
+         `LLPHONE`=`Land line phone`, `MPHONE`=`Mobile phone`,
+         `COMPUTER`=`Computer`, `INTERNET`=`Internet at home`)
+```
+
+```{r}
+#| label: chapter-12-demo-08
+summary(ict_derived)
+```
+
+## 12.5 Exploratory Data Analysis (EDA)
+
+### 12.5.1 EDA using statistical graphics
+
+I compare radio counts with radio ownership rates first. The six histograms then show whether each indicator is spread evenly or concentrated at low values.
+
+```{r}
+#| label: chapter-12-demo-09
+ggplot(data=ict_derived, 
+       aes(x=`RADIO`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+```
+
+```{r}
+#| label: chapter-12-demo-10
+ggplot(data=ict_derived, 
+       aes(x=`RADIO`)) +
+  geom_boxplot(color="black", 
+               fill="light blue")
+```
+
+```{r}
+#| label: chapter-12-demo-11
+ggplot(data=ict_derived, 
+       aes(x=`RADIO_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+```
+
+```{r}
+#| label: chapter-12-demo-12
+ggplot(data=ict_derived, 
+       aes(x=`RADIO_PR`)) +
+  geom_boxplot(color="black", 
+               fill="light blue")
+```
+
+```{r}
+#| label: chapter-12-demo-13
+radio <- ggplot(data=ict_derived, 
+             aes(x= `RADIO_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+tv <- ggplot(data=ict_derived, 
+             aes(x= `TV_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+llphone <- ggplot(data=ict_derived, 
+             aes(x= `LLPHONE_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+mphone <- ggplot(data=ict_derived, 
+             aes(x= `MPHONE_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+computer <- ggplot(data=ict_derived, 
+             aes(x= `COMPUTER_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+
+internet <- ggplot(data=ict_derived, 
+             aes(x= `INTERNET_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue")
+```
+
+```{r}
+#| label: chapter-12-demo-14
+ggarrange(radio, tv, llphone, mphone, computer, internet, 
+          ncol = 3, 
+          nrow = 2)
+```
+
+### 12.5.2 EDA using choropleth map
+
+#### 12.5.2.1 Joining geospatial data with aspatial data
+
+The join uses township codes. Names can have different spellings, so the codes are a better matching key.
+
+```{r}
+#| label: chapter-12-demo-15
+shan_sf <- left_join(shan_sf, 
+                     ict_derived, by=c("TS_PCODE"="TS_PCODE"))
+  
+write_rds(shan_sf, "data/chap12/rds/shan_sf.rds")
+```
+
+I check that the join keeps 55 townships and that all five clustering indicators are available.
+
+```{r}
+#| label: chapter-12-join-check
+stopifnot(nrow(shan_sf) == 55, !anyDuplicated(shan_sf$TS_PCODE))
+stopifnot(!anyNA(st_drop_geometry(shan_sf)[, c("RADIO_PR", "TV_PR", "LLPHONE_PR", "MPHONE_PR", "COMPUTER_PR")]))
+tibble(townships = nrow(shan_sf), census_records = nrow(ict), valid_geometry = all(st_is_valid(shan_sf)))
+```
+
+```{r}
+#| label: chapter-12-demo-16
+shan_sf <- read_rds("data/chap12/rds/shan_sf.rds")
+```
+
+#### 12.5.2.2 Preparing a choropleth map
+
+A high count can reflect a large population of households. The rate map answers a different question: how common is radio ownership within each township?
+
+```{r}
+#| label: chapter-12-demo-17
+qtm(shan_sf, "RADIO_PR")
+```
+
+```{r}
+#| label: chapter-12-demo-18
+TT_HOUSEHOLDS.map <- tm_shape(shan_sf) + 
+  tm_fill(col = "TT_HOUSEHOLDS",
+          n = 5,
+          style = "jenks", 
+          title = "Total households") + 
+  tm_borders(alpha = 0.5) 
+
+RADIO.map <- tm_shape(shan_sf) + 
+  tm_fill(col = "RADIO",
+          n = 5,
+          style = "jenks",
+          title = "Number Radio ") + 
+  tm_borders(alpha = 0.5) 
+
+tmap_arrange(TT_HOUSEHOLDS.map, RADIO.map,
+             asp=NA, ncol=2)
+```
+
+```{r}
+#| label: chapter-12-demo-19
+tm_shape(shan_sf) +
+    tm_polygons(c("TT_HOUSEHOLDS", "RADIO_PR"),
+                style="jenks") +
+    tm_facets(sync = TRUE, ncol = 2) +
+  tm_legend(legend.position = c("right", "bottom"))+
+  tm_layout(outer.margins=0, asp=0)
+```
+
+## 12.6 Correlation Analysis
+
+Highly correlated variables can give the same aspect of ICT access extra weight. Following the chapter, I keep computer ownership and leave internet ownership out of the clustering inputs.
+
+```{r}
+#| label: chapter-12-demo-20
+cluster_vars.cor = cor(ict_derived[,12:17])
+corrplot.mixed(cluster_vars.cor,
+         lower = "ellipse", 
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+```
+
+## 12.7 Hierarchy Cluster Analysis
+
+### 12.7.1 Extracting clustering variables
+
+Five ownership rates are used. Township names become row labels, so they remain visible in the dendrogram and heatmap.
+
+```{r}
+#| label: chapter-12-demo-21
+cluster_vars <- shan_sf %>%
+  st_set_geometry(NULL) %>%
+  select("TS.x", "RADIO_PR", "TV_PR", "LLPHONE_PR", "MPHONE_PR", "COMPUTER_PR")
+head(cluster_vars,10)
+```
+
+```{r}
+#| label: chapter-12-demo-22
+row.names(cluster_vars) <- cluster_vars$"TS.x"
+head(cluster_vars,10)
+```
+
+```{r}
+#| label: chapter-12-demo-23
+shan_ict <- select(cluster_vars, c(2:6))
+head(shan_ict, 10)
+```
+
+```{r}
+#| label: chapter-12-demo-24
+write_rds(shan_ict, "data/chap12/rds/shan_ict.rds")
+shan_ict <- read_rds("data/chap12/rds/shan_ict.rds")
+```
+
+### 12.7.2 Data Standardisation
+
+Standardisation changes how much each indicator contributes to distance. It does not remove skewness or create a normal distribution.
+
+### 12.7.3 Min-Max standardisation
+
+Min max scaling puts each indicator between zero and one. An extreme value can still affect the scale.
+
+```{r}
+#| label: chapter-12-demo-25
+shan_ict.std <- normalize(shan_ict)
+summary(shan_ict.std)
+```
+
+### 12.7.4 Z-score standardisation
+
+A z score measures distance from the mean in standard deviation units. Negative values are below the mean, not negative ownership.
+
+```{r}
+#| label: chapter-12-demo-26
+shan_ict.z <- scale(shan_ict)
+describe(shan_ict.z)
+```
+
+### 12.7.5 Visualising the standardised clustering variables
+
+The horizontal scales change, but the shape of the radio distribution stays the same. Both sets of plots are retained from the chapter.
+
+```{r}
+#| label: chapter-12-demo-27
+r <- ggplot(data=ict_derived, 
+             aes(x= `RADIO_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue") +
+  ggtitle("Raw values without standardisation")
+
+shan_ict_s_df <- as.data.frame(shan_ict.std)
+s <- ggplot(data=shan_ict_s_df, 
+       aes(x=`RADIO_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue") +
+  ggtitle("Min-Max Standardisation")
+
+shan_ict_z_df <- as.data.frame(shan_ict.z)
+z <- ggplot(data=shan_ict_z_df, 
+       aes(x=`RADIO_PR`)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue") +
+  ggtitle("Z-score Standardisation")
+
+ggarrange(r, s, z,
+          ncol = 3,
+          nrow = 1)
+```
+
+```{r}
+#| label: chapter-12-demo-28
+r <- ggplot(data=ict_derived, 
+             aes(x= `RADIO_PR`)) +
+  geom_density(color="black",
+               fill="light blue") +
+  ggtitle("Raw values without standardisation")
+
+shan_ict_s_df <- as.data.frame(shan_ict.std)
+s <- ggplot(data=shan_ict_s_df, 
+       aes(x=`RADIO_PR`)) +
+  geom_density(color="black",
+               fill="light blue") +
+  ggtitle("Min-Max Standardisation")
+
+shan_ict_z_df <- as.data.frame(shan_ict.z)
+z <- ggplot(data=shan_ict_z_df, 
+       aes(x=`RADIO_PR`)) +
+  geom_density(color="black",
+               fill="light blue") +
+  ggtitle("Z-score Standardisation")
+
+ggarrange(r, s, z,
+          ncol = 3,
+          nrow = 1)
+```
+
+### 12.7.6 Computing proximity matrix
+
+The chapter computes Euclidean distance from shan_ict, the original rates. I keep that choice here. Indicators with a wider spread therefore contribute more, even though all five have the same unit.
+
+```{r}
+#| label: chapter-12-demo-29
+proxmat <- dist(shan_ict, method = 'euclidean')
+```
+
+```{r}
+#| label: chapter-12-demo-30
+as.matrix(proxmat)[1:6, 1:6]
+```
+
+### 12.7.7 Computing hierarchical clustering
+
+Ward clustering merges groups step by step. Branches that join at a low height have more similar ICT profiles.
+
+```{r}
+#| label: chapter-12-demo-31
+hclust_ward <- hclust(proxmat, method = 'ward.D')
+```
+
+```{r}
+#| label: chapter-12-demo-32
+plot(hclust_ward, cex = 0.6)
+```
+
+### 12.7.8 Selecting the optimal clustering algorithm
+
+A larger agglomerative coefficient suggests a stronger grouping structure for that method. It does not establish that the groups are useful planning regions.
+
+```{r}
+#| label: chapter-12-demo-33
+m <- c( "average", "single", "complete", "ward")
+names(m) <- c( "average", "single", "complete", "ward")
+
+ac <- function(x) {
+  agnes(shan_ict, method = x)$ac
+}
+
+map_dbl(m, ac)
+```
+
+### 12.7.9 Determining Optimal Clusters
+
+#### 12.7.9.1 Gap Statistic Method
+
+The gap statistic compares within group variation with reference datasets. I retain the course seed, 50 simulations and maximum of 10 clusters. Six clusters are used later to reproduce the chapter; this is a demonstration choice, not automatically the unique best answer.
+
+```{r}
+#| label: chapter-12-demo-34
+set.seed(12345)
+gap_stat <- clusGap(shan_ict, 
+                    FUN = hcut, 
+                    nstart = 25, 
+                    K.max = 10, 
+                    B = 50)
+# Print the result
+print(gap_stat, method = "firstmax")
+```
+
+```{r}
+#| label: chapter-12-demo-35
+fviz_gap_stat(gap_stat)
+```
+
+Here the printed firstmax rule selects one cluster. It does not support six as a clear optimum. I still use six below to follow the course comparison. Also, hcut uses its default Ward setting, while the earlier dendrogram explicitly uses ward.D; this gap plot is not an exact validation of that earlier tree.
+
+### 12.7.10 Interpreting the dendrograms
+
+The rectangles show the six groups used for the map. The height of each merge helps show which groups are more distinct.
+
+```{r}
+#| label: chapter-12-demo-36
+plot(hclust_ward, cex = 0.6)
+rect.hclust(hclust_ward, 
+            k = 6, 
+            border = 2:5)
+```
+
+### 12.7.11 Visually-driven hierarchical clustering analysis
+
+#### 12.7.11.1 Transforming the data frame into a matrix
+
+```{r}
+#| label: chapter-12-demo-37
+shan_ict_mat <- data.matrix(shan_ict)
+```
+
+#### 12.7.11.2 Plotting interactive cluster heatmap using heatmaply()
+
+Hovering over a cell reveals its value. This heatmap clusters normalised values, as in the chapter. Its row groups may therefore differ from the earlier clustering of original rates.
+
+```{r}
+#| label: chapter-12-demo-38
+#| fig-height: 9
+heatmaply(normalize(shan_ict_mat),
+          Colv=NA,
+          dist_method = "euclidean",
+          hclust_method = "ward.D",
+          seriate = "OLO",
+          colors = Blues,
+          k_row = 6,
+          margins = c(NA,200,60,NA),
+          fontsize_row = 4,
+          fontsize_col = 5,
+          main="Geographic Segmentation of Shan State by ICT indicators",
+          xlab = "ICT Indicators",
+          ylab = "Townships of Shan State"
+          )
+```
+
+### 12.7.12 Mapping the clusters formed
+
+These groups use ICT similarity only. Townships in the same group do not have to touch, so the map can contain separated pieces.
+
+```{r}
+#| label: chapter-12-demo-39
+groups <- as.factor(cutree(hclust_ward, k=6))
+```
+
+```{r}
+#| label: chapter-12-demo-40
+shan_sf_cluster <- cbind(shan_sf, as.matrix(groups)) %>%
+  rename(`CLUSTER`=`as.matrix.groups.`)
+```
+
+```{r}
+#| label: chapter-12-demo-41
+qtm(shan_sf_cluster, "CLUSTER")
+```
+
+## 12.8 Spatially Constrained Clustering: SKATER approach
+
+### 12.8.1 Converting into SpatialPolygonsDataFrame
+
+I retain the course conversion to an sp polygon object for the neighbour list workflow.
+
+```{r}
+#| label: chapter-12-demo-42
+shan_sp <- as_Spatial(shan_sf)
+```
+
+### 12.8.2 Computing Neighbour List
+
+Queen neighbours share a boundary or a corner. The blue lines show possible connections between neighbouring townships.
+
+```{r}
+#| label: chapter-12-demo-43
+shan.nb <- poly2nb(shan_sp)
+summary(shan.nb)
+```
+
+```{r}
+#| label: chapter-12-demo-44
+coords <- st_coordinates(
+  st_centroid(st_geometry(shan_sf)))
+```
+
+```{r}
+#| label: chapter-12-demo-45
+plot(st_geometry(shan_sf), 
+     border=grey(.5))
+plot(shan.nb,
+     coords, 
+     col="blue", 
+     add=TRUE)
+```
+
+### 12.8.3 Computing minimum spanning tree
+
+#### 12.8.3.1 Calculating edge costs
+
+An edge cost measures the difference in ICT rates between two neighbours. These costs are kept as supplied rather than scaled to make each row sum to one.
+
+```{r}
+#| label: chapter-12-demo-46
+lcosts <- nbcosts(shan.nb, shan_ict)
+```
+
+```{r}
+#| label: chapter-12-demo-47
+shan.w <- nb2listw(shan.nb, 
+                   lcosts, 
+                   style="B")
+summary(shan.w)
+```
+
+### 12.8.4 Computing minimum spanning tree
+
+A spanning tree connects all 55 townships with 54 edges. It gives SKATER a connected structure that can be split into regions.
+
+```{r}
+#| label: chapter-12-demo-48
+shan.mst <- mstree(shan.w)
+```
+
+```{r}
+#| label: chapter-12-demo-49
+class(shan.mst)
+```
+
+```{r}
+#| label: chapter-12-demo-50
+dim(shan.mst)
+```
+
+```{r}
+#| label: chapter-12-demo-51
+head(shan.mst)
+```
+
+```{r}
+#| label: chapter-12-demo-52
+plot(st_geometry(shan_sf), 
+                 border=gray(.5))
+plot.mst(shan.mst, 
+         coords, 
+         col="blue", 
+         cex.lab=0.7, 
+         cex.circles=0.005, 
+         add=TRUE)
+```
+
+### 12.8.5 Computing spatially constrained clusters using SKATER method
+
+Five cuts produce six groups. SKATER keeps each group connected through the neighbour graph, but it does not require groups to have similar sizes.
+
+```{r}
+#| label: chapter-12-demo-53
+clust6 <- spdep::skater(edges = shan.mst[,1:2], 
+                 data = shan_ict, 
+                 method = "euclidean", 
+                 ncuts = 5)
+```
+
+```{r}
+#| label: chapter-12-demo-54
+str(clust6)
+```
+
+```{r}
+#| label: chapter-12-demo-55
+ccs6 <- clust6$groups
+ccs6
+```
+
+```{r}
+#| label: chapter-12-demo-56
+table(ccs6)
+```
+
+```{r}
+#| label: chapter-12-demo-57
+plot(st_geometry(shan_sf), 
+     border=gray(.5))
+plot(clust6, 
+     coords, 
+     cex.lab=.7,
+     groups.colors=c("red","green","blue", "brown", "pink", "purple"),
+     cex.circles=0.005, 
+     add=TRUE)
+```
+
+### 12.8.6 Visualising the clusters in choropleth map
+
+The maps compare ICT based groups with regions formed under a connectivity requirement. Cluster numbers are labels, so matching numbers across methods do not necessarily identify matching areas.
+
+```{r}
+#| label: chapter-12-demo-58
+groups_mat <- as.matrix(clust6$groups)
+shan_sf_spatialcluster <- cbind(shan_sf_cluster, as.factor(groups_mat)) %>%
+  rename(`SP_CLUSTER`=`as.factor.groups_mat.`)
+qtm(shan_sf_spatialcluster, "SP_CLUSTER")
+```
+
+```{r}
+#| label: chapter-12-demo-59
+hclust.map <- qtm(shan_sf_cluster,
+                  "CLUSTER") + 
+  tm_borders(alpha = 0.5) 
+
+shclust.map <- qtm(shan_sf_spatialcluster,
+                   "SP_CLUSTER") + 
+  tm_borders(alpha = 0.5) 
+
+tmap_arrange(hclust.map, shclust.map,
+             asp=NA, ncol=2)
+```
+
+## 12.9 Spatially Constrained Clustering: ClustGeo Method
+
+### 12.9.1 A short note about ClustGeo package
+
+ClustGeo combines attribute differences with geographical distances. Alpha controls their balance. A distance penalty encourages geographical proximity, but does not guarantee connected regions in the way SKATER does.
+
+### 12.9.2 Ward-like hierarchical clustering: ClustGeo
+
+This first ClustGeo example uses only the ICT distance matrix. It is the baseline for the next spatial comparison.
+
+```{r}
+#| label: chapter-12-demo-60
+nongeo_cluster <- hclustgeo(proxmat)
+plot(nongeo_cluster, cex = 0.5)
+rect.hclust(nongeo_cluster, 
+            k = 6, 
+            border = 2:5)
+```
+
+#### 12.9.2.1 Mapping the clusters formed
+
+```{r}
+#| label: chapter-12-demo-61
+groups <- as.factor(cutree(nongeo_cluster, k=6))
+```
+
+```{r}
+#| label: chapter-12-demo-62
+shan_sf_ngeo_cluster <- cbind(shan_sf, as.matrix(groups)) %>%
+  rename(`CLUSTER` = `as.matrix.groups.`)
+```
+
+```{r}
+#| label: chapter-12-demo-63
+qtm(shan_sf_ngeo_cluster, "CLUSTER")
+```
+
+### 12.9.3 Spatially Constrained Hierarchical Clustering
+
+The geographical matrix uses distances between polygon geometries, as in the chapter. Touching polygons have zero distance. I inspect the alpha curves and retain 0.2 for comparison with the course example.
+
+```{r}
+#| label: chapter-12-demo-64
+dist <- st_distance(shan_sf, shan_sf)
+distmat <- as.dist(dist)
+```
+
+```{r}
+#| label: chapter-12-demo-65
+cr <- choicealpha(proxmat, distmat, range.alpha = seq(0, 1, 0.1), K=6, graph = TRUE)
+```
+
+```{r}
+#| label: chapter-12-demo-66
+clustG <- hclustgeo(proxmat, distmat, alpha = 0.2)
+```
+
+```{r}
+#| label: chapter-12-demo-67
+groups <- as.factor(cutree(clustG, k=6))
+```
+
+```{r}
+#| label: chapter-12-demo-68
+shan_sf_Gcluster <- cbind(shan_sf, as.matrix(groups)) %>%
+  rename(`CLUSTER` = `as.matrix.groups.`)
+```
+
+```{r}
+#| label: chapter-12-demo-69
+qtm(shan_sf_Gcluster, "CLUSTER")
+```
+
+## 12.10 Visual Interpretation of Clusters
+
+### 12.10.1 Visualising individual clustering variable
+
+This section profiles the non geographical ClustGeo result, matching the object used in the chapter. The line inside each box is the median; it is not the mean.
+
+```{r}
+#| label: chapter-12-demo-70
+ggplot(data = shan_sf_ngeo_cluster,
+       aes(x = CLUSTER, y = RADIO_PR)) +
+  geom_boxplot()
+```
+
+### 12.10.2 Multivariate Visualisation
+
+The parallel coordinate plot shows all five ICT indicators by group. The common vertical range keeps the original rate differences visible. The table below gives exact group means to support the visual comparison.
+
+```{r}
+#| label: chapter-12-demo-71
+#| fig-width: 14
+#| fig-height: 6
+ggparcoord(data = shan_sf_ngeo_cluster, 
+           columns = c(17:21), 
+           scale = "globalminmax",
+           alphaLines = 0.2,
+           boxplot = TRUE, 
+           title = "Multiple Parallel Coordinates Plots of ICT Variables by Cluster") +
+  facet_grid(~ CLUSTER) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+
+```{r}
+#| label: chapter-12-demo-72
+shan_sf_ngeo_cluster %>% 
+  st_set_geometry(NULL) %>%
+  group_by(CLUSTER) %>%
+  summarise(mean_RADIO_PR = mean(RADIO_PR),
+            mean_TV_PR = mean(TV_PR),
+            mean_LLPHONE_PR = mean(LLPHONE_PR),
+            mean_MPHONE_PR = mean(MPHONE_PR),
+            mean_COMPUTER_PR = mean(COMPUTER_PR))
+```
+
+## My Comparison and Conclusion
+
+The non geographical ClustGeo profiles show that Cluster 4 has about 744 TV owning households and 651 mobile phone owning households per 1,000 households. Cluster 5 has about 224 and 132 respectively. This is a large difference in these two types of ICT access. Radio tells a different story: its highest group mean is in Cluster 3, so the groups cannot simply be ranked from best to worst across every indicator.
+
+The three methods answer slightly different questions. Ordinary hierarchical clustering groups similar ICT profiles regardless of location. SKATER creates regions connected through neighbouring townships. ClustGeo lets me trade some attribute similarity for geographical proximity.
+
+I put the final three maps together below. The labels are local to each method, so I compare the shapes and fragmentation rather than assuming that the colours identify the same groups.
+
+```{r}
+#| label: chapter-12-method-comparison
+#| fig-width: 14
+#| fig-height: 7
+tmap_arrange(
+  qtm(shan_sf_cluster, "CLUSTER") + tm_title("Hierarchical clustering"),
+  qtm(shan_sf_spatialcluster, "SP_CLUSTER") + tm_title("SKATER"),
+  qtm(shan_sf_Gcluster, "CLUSTER") + tm_title("ClustGeo: alpha = 0.2"),
+  ncol = 3)
+```
+
+A connected result can still contain very small regions. I check group sizes before treating any result as a planning proposal.
+
+```{r}
+#| label: chapter-12-group-sizes
+tibble(
+  Cluster = 1:6,
+  Hierarchical = as.integer(table(factor(shan_sf_cluster$CLUSTER, levels = 1:6))),
+  SKATER = as.integer(table(factor(shan_sf_spatialcluster$SP_CLUSTER, levels = 1:6))),
+  ClustGeo = as.integer(table(factor(shan_sf_Gcluster$CLUSTER, levels = 1:6)))
+) %>% knitr::kable()
+```
+
+The results describe household ICT ownership in 2014. They do not directly measure internet speed, affordability or current service quality. The number of groups, variable scaling and neighbourhood definition all affect the result. I would test those choices before using these regions to allocate services.
+
+SKATER produces groups of 22, 18, 11, 2, 1 and 1 townships. The two single township groups show why connectivity alone is not enough for a practical regional plan. ClustGeo at alpha = 0.2 gives more balanced group sizes, from 7 to 12, but its distance penalty does not guarantee that every group is connected.
+
+## References and Code Notes
+
+-   Kam, T. S. [Chapter 12: Geographical Segmentation with Spatially Constrained Clustering Techniques](https://r4gdsa.netlify.app/chap12.html). Source of the demonstration code and exercise structure.
+-   [Course data mirror](https://github.com/RakenduR/r4gdsa/tree/master/chap05/data): Myanmar township boundaries and Shan-ICT.csv. The older course organises these files under Chapter 5.
+-   Local changes: project data paths; intermediate RDS creation; a six by six preview of the large distance matrix; six SKATER colours for six groups; smaller rotated axis labels; reproducible seed; data checks and a final comparison. The analysis methods and main settings follow the chapter.
