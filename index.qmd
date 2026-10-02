@@ -10,6 +10,8 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 -   [Hands-on Exercise 2: Spatial Point Pattern Analysis](hands-on_ex02.qmd)
 -   [Hands-on Exercise 3: Spatio-Temporal Point Patterns Analysis](hands-on_ex03.qmd)
 -   [Hands-on Exercise 4: Spatial Weights and Applications](hands-on_ex04.qmd)
+-   [Hands-on Exercise 5: Global and Local Spatial Autocorrelation](hands-on_ex05.qmd)
+-   [Hands-on Exercise 6: Geographical Segmentation with Spatially Constrained Clustering](hands-on_ex06.qmd)
 
 ## Take home Exercise
 

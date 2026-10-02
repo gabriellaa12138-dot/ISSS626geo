@@ -341,5 +341,26 @@
     "title": "Hands-on Exercise 6: Geographical Segmentation with Spatially Constrained Clustering",
     "section": "References and Code Notes",
     "text": "References and Code Notes\n\nKam, T. S. Chapter 12: Geographical Segmentation with Spatially Constrained Clustering Techniques. Source of the demonstration code and exercise structure.\nCourse data mirror: Myanmar township boundaries and Shan-ICT.csv. The older course organises these files under Chapter 5.\nLocal changes: project data paths; intermediate RDS creation; a six by six preview of the large distance matrix; six SKATER colours for six groups; smaller rotated axis labels; reproducible seed; data checks and a final comparison. The analysis methods and main settings follow the chapter."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "ISSS626geo",
+    "section": "",
+    "text": "This website records the hands-on exercises for ISSS626 Geospatial Data Science and Analytics."
+  },
+  {
+    "objectID": "index.html#hands-on-exercises",
+    "href": "index.html#hands-on-exercises",
+    "title": "ISSS626geo",
+    "section": "Hands-on Exercises",
+    "text": "Hands-on Exercises\n\nHands-on Exercise 1: Geospatial Data Wrangling and Choropleth Mapping with R\nHands-on Exercise 2: Spatial Point Pattern Analysis\nHands-on Exercise 3: Spatio-Temporal Point Patterns Analysis\nHands-on Exercise 4: Spatial Weights and Applications\nHands-on Exercise 5: Global and Local Spatial Autocorrelation\nHands-on Exercise 6: Geographical Segmentation with Spatially Constrained Clustering"
+  },
+  {
+    "objectID": "index.html#take-home-exercise",
+    "href": "index.html#take-home-exercise",
+    "title": "ISSS626geo",
+    "section": "Take home Exercise",
+    "text": "Take home Exercise\n\nTechnical Report 1: Road Traffic Accident Patterns in Bangkok\nExecutive Summary 1"
   }
 ]
