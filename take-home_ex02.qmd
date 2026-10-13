@@ -1,0 +1,1598 @@
+---
+title: "Take home Exercise 2: Geospatial Analytics for Peace"
+subtitle: "Spatial and spatio-temporal patterns of political violence in Myanmar, January 2021 to September 2025"
+author: "Ziying Zhou"
+date: "2026-10-5"
+date-modified: today
+execute:
+  echo: true
+  warning: false
+  message: false
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    css: take-home-report.css
+---
+
+## Executive summary
+
+<!-- EXEC-SUMMARY: written after the results are checked -->
+
+## Research question and objectives
+
+The main question is:
+
+> Where did political violence concentrate in Myanmar between January 2021 and September 2025, and how did these concentrations emerge, persist, or fade over time at township level?
+
+The analysis has five objectives:
+
+1.  Prepare a clean township by quarter table of armed conflict events from the ACLED records and the MIMU township boundaries.
+2.  Describe the geographic distribution and the time pattern of the main conflict variables.
+3.  Identify significant clusters, spatial outliers, hot spots and cold spots with local measures of spatial association.
+4.  Classify how hot and cold spots changed through time with emerging hot spot analysis.
+5.  Check whether the main hot spot pattern depends on the township boundaries by repeating the space-time analysis on equal area hexagons.
+
+## Data and study design
+
+### Data sources
+
+```{r}
+#| label: setup
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+pacman::p_load(sf, sfdep, spdep, tmap, tidyverse, lubridate,
+               knitr, plotly, Kendall)
+
+set.seed(1234)
+tmap_mode("plot")
+```
+
+```{r}
+#| label: data-sources
+data_used <- tibble(
+  dataset = c(
+    "ACLED Myanmar event data",
+    "Myanmar Township Boundaries MIMU v9.4"
+  ),
+  local_file = c(
+    "data/takehome2/aspatial/ACLED_Data_Myanmar_Jan2021-Sep2025.csv",
+    "data/takehome2/geospatial/mmr_polbnda_adm3_250k_mimu_1.shp"
+  ),
+  source = c(
+    "ACLED, provided on eLearn for this course",
+    "MIMU Geonode, layer mmr_polbnda_adm3_250k_mimu_1"
+  ),
+  coverage = c(
+    "Event records from 1 January 2021 to 30 September 2025",
+    "330 township polygons (Admin 3), Pcode version 9.4"
+  )
+)
+
+kable(data_used)
+```
+
+ACLED records one row per conflict or protest event. Each event has a date, an event type, actors, coordinates, a geographic precision code and an estimated number of fatalities. The MIMU layer gives the township boundaries and the official township Pcodes. The Pcodes are used as the location key in all later steps.
+
+The ACLED terms of use do not allow the raw event file to be shared again. The raw CSV is therefore listed in `.gitignore` and is not pushed to GitHub. To reproduce the report, place the course file in `data/takehome2/aspatial/`.
+
+### Methods and course chapters
+
+```{r}
+#| label: methods-table
+methods_used <- tribble(
+  ~step, ~method, ~course_chapter,
+  "Data wrangling and choropleth maps", "sf, point-in-polygon join, tmap", "Chapters 1 and 2",
+  "Spatial weights", "Queen contiguity with a nearest neighbour fix for islands", "Chapter 8",
+  "Global spatial autocorrelation", "Moran's I permutation test", "Chapter 9",
+  "Local measures of spatial association", "Local Moran's I and Getis-Ord Gi*", "Chapter 10",
+  "Spatio-temporal hot spots", "Space-time cube, Gi*, Mann-Kendall test, EHSA", "Chapter 11",
+  "Value added analysis", "Equal area hexagon grid with st_make_grid()", "Chapter 17"
+)
+
+kable(methods_used)
+```
+
+### Study area
+
+The study area is the whole of Myanmar. I use EPSG:32647, WGS 84 / UTM zone 47N. It is a projected system in metres, so areas and distances can be measured directly. Myanmar crosses two UTM zones, so some distortion remains near the western border. It is small for the township level comparison used here.
+
+The township layer is sorted by Pcode before any analysis. The space-time functions return results by location, so a fixed and sorted location order keeps every result matched to the correct township.
+
+```{r}
+#| label: import-townships
+mmr_ts_raw <- st_read(
+  dsn = "data/takehome2/geospatial",
+  layer = "mmr_polbnda_adm3_250k_mimu_1",
+  quiet = TRUE
+)
+
+mmr_ts <- mmr_ts_raw %>%
+  select(ST, ST_PCODE, DT, DT_PCODE, TS, TS_PCODE) %>%
+  st_make_valid()
+
+if (any(st_geometry_type(mmr_ts) == "GEOMETRYCOLLECTION")) {
+  mmr_ts <- st_collection_extract(mmr_ts, "POLYGON")
+}
+
+mmr_ts <- mmr_ts %>%
+  st_cast("MULTIPOLYGON") %>%
+  st_transform(32647)
+
+if (any(duplicated(mmr_ts$TS_PCODE))) {
+  mmr_ts <- mmr_ts %>%
+    group_by(ST, ST_PCODE, DT, DT_PCODE, TS, TS_PCODE) %>%
+    summarise(.groups = "drop")
+}
+
+mmr_ts <- mmr_ts %>%
+  arrange(TS_PCODE)
+```
+
+```{r}
+#| label: township-check
+township_check <- tibble(
+  source_crs = st_crs(mmr_ts_raw)$epsg,
+  analysis_crs = st_crs(mmr_ts)$epsg,
+  townships = nrow(mmr_ts),
+  unique_pcodes = n_distinct(mmr_ts$TS_PCODE),
+  states_regions = n_distinct(mmr_ts$ST),
+  invalid_geometries = sum(!st_is_valid(mmr_ts)),
+  total_area_sqkm = round(sum(as.numeric(st_area(mmr_ts))) / 1000000)
+)
+
+kable(township_check)
+```
+
+```{r}
+#| label: state-layer
+mmr_st <- mmr_ts %>%
+  group_by(ST) %>%
+  summarise(.groups = "drop")
+```
+
+```{r}
+#| label: study-area-map
+#| fig-width: 7
+#| fig-height: 9
+tm_shape(mmr_ts) +
+  tm_polygons(fill = "grey96", col = "grey75", lwd = 0.3) +
+  tm_shape(mmr_st) +
+  tm_borders(col = "grey25", lwd = 1) +
+  tm_text("ST", size = 0.55) +
+  tm_title("Myanmar townships and states or regions (MIMU v9.4)")
+```
+
+### Unit of analysis and time window
+
+The main spatial unit is the township. It is the level named in the objective, and it matches the Pcodes used by humanitarian agencies. The time window is 1 January 2021 to 30 September 2025. I divide it into 19 quarters, from 2021 Q1 to 2025 Q3. A quarter gives enough events in most active townships to show change, while a month would leave many townships with long runs of zeros.
+
+The conflict variables are the counts of the three ACLED political violence event types: Battles, Explosions/Remote violence, and Violence against civilians. Their sum is the main variable. Reported fatalities are used as a second measure of intensity.
+
+## Data preparation and quality checks
+
+### Import and inspect the ACLED table
+
+```{r}
+#| label: import-acled
+acled_raw <- read_csv(
+  "data/takehome2/aspatial/ACLED_Data_Myanmar_Jan2021-Sep2025.csv",
+  show_col_types = FALSE
+)
+
+glimpse(acled_raw)
+```
+
+```{r}
+#| label: acled-check
+acled_check <- acled_raw %>%
+  summarise(
+    rows = n(),
+    first_date = min(as.Date(event_date)),
+    last_date = max(as.Date(event_date)),
+    duplicate_event_ids = sum(duplicated(event_id_cnty)),
+    missing_coordinates = sum(is.na(latitude) | is.na(longitude)),
+    missing_admin3 = sum(is.na(admin3)),
+    country_not_myanmar = sum(country != "Myanmar")
+  )
+
+kable(acled_check)
+```
+
+```{r}
+#| label: acled-event-types
+acled_raw %>%
+  count(disorder_type, event_type, name = "events") %>%
+  arrange(desc(events)) %>%
+  kable()
+```
+
+<!-- RESULT: acled-check and event types -->
+
+### Select armed conflict events
+
+Protests, riots and strategic developments are not armed violence, so they are removed. The three political violence event types remain.
+
+ACLED also records how precisely each event is located. Code 1 means the exact town or village. Code 2 means a nearby place or the township. Code 3 means a larger region, often the state capital or a regional centre. A code 3 point would be counted in the wrong township, so these events are removed from the township analysis.
+
+```{r}
+#| label: select-events
+pv_types <- c("Battles", "Explosions/Remote violence", "Violence against civilians")
+
+acled <- acled_raw %>%
+  mutate(event_date = as.Date(event_date)) %>%
+  filter(
+    event_date >= as.Date("2021-01-01"),
+    event_date <= as.Date("2025-09-30")
+  )
+
+conflict_all <- acled %>%
+  filter(event_type %in% pv_types)
+
+precision_tbl <- conflict_all %>%
+  count(geo_precision, name = "events") %>%
+  mutate(share_pct = round(events / sum(events) * 100, 1))
+
+kable(precision_tbl)
+```
+
+```{r}
+#| label: prepare-events
+conflict <- conflict_all %>%
+  filter(geo_precision %in% c(1, 2)) %>%
+  mutate(
+    year = lubridate::year(event_date),
+    qtr = lubridate::quarter(event_date),
+    period = as.integer(year * 10 + qtr),
+    quarter_label = paste0(year, " Q", qtr)
+  )
+
+selection_summary <- tibble(
+  step = c(
+    "All records in the study window",
+    "Political violence event types",
+    "Removed: geographic precision code 3",
+    "Events kept for the township analysis"
+  ),
+  events = c(
+    nrow(acled),
+    nrow(conflict_all),
+    nrow(conflict_all) - nrow(conflict),
+    nrow(conflict)
+  )
+)
+
+kable(selection_summary)
+```
+
+<!-- RESULT: selection numbers -->
+
+### Point layer and township join
+
+The coordinates are converted to points in WGS 84 and then projected to EPSG:32647. I assign each event to a township with a point-in-polygon join instead of the ACLED `admin3` name. Township names have different spellings in the two sources, while the polygon join uses the official MIMU boundaries and Pcodes directly.
+
+A point that falls exactly on a shared border can match two townships. I keep the first match so every event is counted once. A few events fall just outside the coastline. If an event is within 5 km of a township, it is assigned to the nearest township. Events further away, for example at sea, are removed.
+
+```{r}
+#| label: point-layer
+conflict_sf <- conflict %>%
+  st_as_sf(
+    coords = c("longitude", "latitude"),
+    crs = 4326,
+    remove = FALSE
+  ) %>%
+  st_transform(32647)
+
+conflict_ts <- conflict_sf %>%
+  st_join(mmr_ts %>% select(TS_PCODE, TS, ST), join = st_intersects) %>%
+  distinct(event_id_cnty, .keep_all = TRUE) %>%
+  mutate(join_method = if_else(is.na(TS_PCODE), "Not matched", "Inside a township"))
+
+unmatched_rows <- which(is.na(conflict_ts$TS_PCODE))
+
+if (length(unmatched_rows) > 0) {
+  nearest_idx <- st_nearest_feature(conflict_ts[unmatched_rows, ], mmr_ts)
+  nearest_m <- as.numeric(st_distance(
+    conflict_ts[unmatched_rows, ],
+    mmr_ts[nearest_idx, ],
+    by_element = TRUE
+  ))
+  snap_rows <- unmatched_rows[nearest_m <= 5000]
+  snap_idx <- nearest_idx[nearest_m <= 5000]
+  conflict_ts$TS_PCODE[snap_rows] <- mmr_ts$TS_PCODE[snap_idx]
+  conflict_ts$TS[snap_rows] <- mmr_ts$TS[snap_idx]
+  conflict_ts$ST[snap_rows] <- mmr_ts$ST[snap_idx]
+  conflict_ts$join_method[snap_rows] <- "Snapped within 5 km"
+}
+
+join_summary <- conflict_ts %>%
+  st_drop_geometry() %>%
+  count(join_method, name = "events")
+
+kable(join_summary)
+```
+
+```{r}
+#| label: unmatched-events
+conflict_ts %>%
+  st_drop_geometry() %>%
+  filter(join_method == "Not matched") %>%
+  count(admin1, name = "events") %>%
+  kable()
+
+conflict_ts <- conflict_ts %>%
+  filter(join_method != "Not matched")
+```
+
+As a quality check, I compare the ACLED `admin3` label with the MIMU township name from the spatial join. Names are compared after removing spaces, hyphens and other symbols.
+
+```{r}
+#| label: name-agreement
+norm_name <- function(x) str_to_lower(str_remove_all(x, "[^A-Za-z]"))
+
+name_check <- conflict_ts %>%
+  st_drop_geometry() %>%
+  filter(!is.na(admin3)) %>%
+  mutate(same_name = norm_name(admin3) == norm_name(TS)) %>%
+  group_by(geo_precision) %>%
+  summarise(
+    events = n(),
+    same_township_name = sum(same_name),
+    agreement_pct = round(mean(same_name) * 100, 1),
+    .groups = "drop"
+  )
+
+kable(name_check)
+```
+
+```{r}
+#| label: name-mismatches
+conflict_ts %>%
+  st_drop_geometry() %>%
+  filter(!is.na(admin3), norm_name(admin3) != norm_name(TS)) %>%
+  count(admin3, TS, name = "events", sort = TRUE) %>%
+  head(10) %>%
+  kable()
+```
+
+<!-- RESULT: join and name agreement -->
+
+### Township by quarter table and derived variables
+
+I count events by township and quarter. Every township and quarter combination is kept, so a quarter with no events is recorded as zero rather than missing.
+
+```{r}
+#| label: quarter-lookup
+quarter_lookup <- tibble(
+  quarter_start = seq(as.Date("2021-01-01"), as.Date("2025-07-01"), by = "quarter")
+) %>%
+  mutate(
+    period = as.integer(lubridate::year(quarter_start) * 10 + lubridate::quarter(quarter_start)),
+    quarter_label = paste0(lubridate::year(quarter_start), " Q", lubridate::quarter(quarter_start))
+  )
+
+nrow(quarter_lookup)
+```
+
+```{r}
+#| label: township-quarter
+ts_quarter <- conflict_ts %>%
+  st_drop_geometry() %>%
+  group_by(TS_PCODE, period) %>%
+  summarise(
+    events = n(),
+    battles = sum(event_type == "Battles"),
+    explosions = sum(event_type == "Explosions/Remote violence"),
+    vac = sum(event_type == "Violence against civilians"),
+    fatalities = sum(fatalities, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  complete(
+    TS_PCODE = mmr_ts$TS_PCODE,
+    period = quarter_lookup$period,
+    fill = list(events = 0L, battles = 0L, explosions = 0L, vac = 0L, fatalities = 0)
+  ) %>%
+  left_join(quarter_lookup %>% select(period, quarter_label), by = "period") %>%
+  arrange(TS_PCODE, period)
+
+variable_dictionary <- tribble(
+  ~variable, ~meaning,
+  "events", "All political violence events: battles + explosions + vac",
+  "battles", "ACLED event type Battles",
+  "explosions", "ACLED event type Explosions/Remote violence",
+  "vac", "ACLED event type Violence against civilians",
+  "fatalities", "Sum of the reported fatalities of these events"
+)
+
+kable(variable_dictionary)
+```
+
+```{r}
+#| label: township-totals
+ts_total <- ts_quarter %>%
+  group_by(TS_PCODE) %>%
+  summarise(across(c(events, battles, explosions, vac, fatalities), sum), .groups = "drop")
+
+mmr_conflict <- mmr_ts %>%
+  left_join(ts_total, by = "TS_PCODE") %>%
+  mutate(
+    area_sqkm = as.numeric(st_area(geometry)) / 1000000,
+    events_per_1000sqkm = events / area_sqkm * 1000
+  )
+
+cube_check <- tibble(
+  townships = n_distinct(ts_quarter$TS_PCODE),
+  quarters = n_distinct(ts_quarter$period),
+  rows = nrow(ts_quarter),
+  expected_rows = nrow(mmr_ts) * nrow(quarter_lookup),
+  events_in_table = sum(ts_quarter$events),
+  events_in_point_layer = nrow(conflict_ts),
+  township_quarters_with_zero = round(mean(ts_quarter$events == 0) * 100, 1),
+  townships_with_no_event = sum(mmr_conflict$events == 0)
+)
+
+kable(cube_check)
+```
+
+### Space-time cube
+
+The township by quarter table and the township polygons are combined into a space-time cube with `spacetime()`. A valid cube has one row for every location and every time period.
+
+```{r}
+#| label: spacetime-cube
+conflict_st <- spacetime(
+  ts_quarter,
+  mmr_ts %>% select(TS_PCODE, TS, ST),
+  .loc_col = "TS_PCODE",
+  .time_col = "period"
+)
+
+is_spacetime_cube(conflict_st)
+```
+
+## Geovisualisation of conflict patterns
+
+### National trend by quarter
+
+```{r}
+#| label: national-trend
+#| fig-width: 10
+#| fig-height: 5
+type_cols <- c(
+  "Battles" = "#c2410c",
+  "Explosions/Remote violence" = "#7c3aed",
+  "Violence against civilians" = "#0f766e"
+)
+
+national_q <- conflict_ts %>%
+  st_drop_geometry() %>%
+  count(period, event_type, name = "events") %>%
+  left_join(quarter_lookup, by = "period")
+
+ggplot(national_q, aes(x = quarter_start, y = events, colour = event_type)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 1.6) +
+  scale_colour_manual(values = type_cols, name = NULL) +
+  scale_x_date(date_breaks = "6 months", date_labels = "%Y-%m") +
+  labs(
+    title = "Political violence events by quarter",
+    x = NULL,
+    y = "Events"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+```{r}
+#| label: yearly-table
+yearly_tbl <- conflict_ts %>%
+  st_drop_geometry() %>%
+  group_by(year) %>%
+  summarise(
+    quarters = n_distinct(period),
+    events = n(),
+    battles = sum(event_type == "Battles"),
+    explosions = sum(event_type == "Explosions/Remote violence"),
+    vac = sum(event_type == "Violence against civilians"),
+    fatalities = sum(fatalities, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    events_per_quarter = round(events / quarters),
+    fatalities_per_quarter = round(fatalities / quarters)
+  )
+
+kable(yearly_tbl)
+```
+
+```{r}
+#| label: sub-event-table
+conflict_ts %>%
+  st_drop_geometry() %>%
+  count(year, sub_event_type) %>%
+  group_by(sub_event_type) %>%
+  filter(sum(n) >= 500) %>%
+  ungroup() %>%
+  pivot_wider(names_from = year, values_from = n, values_fill = 0) %>%
+  arrange(desc(`2024`)) %>%
+  kable()
+```
+
+<!-- RESULT: national trend (max 200 words) -->
+
+### State and region by quarter
+
+```{r}
+#| label: state-quarter-heatmap
+#| fig-width: 11
+#| fig-height: 6
+state_q <- conflict_ts %>%
+  st_drop_geometry() %>%
+  count(ST, period, name = "events") %>%
+  complete(ST = unique(mmr_ts$ST), period = quarter_lookup$period, fill = list(events = 0L)) %>%
+  left_join(quarter_lookup, by = "period") %>%
+  mutate(
+    event_class = cut(
+      events,
+      breaks = c(-Inf, 0, 25, 100, 250, 500, 1000, Inf),
+      labels = c("0", "1-25", "26-100", "101-250", "251-500", "501-1000", "Over 1000")
+    )
+  )
+
+ggplot(state_q, aes(x = quarter_label, y = fct_reorder(ST, events, .fun = sum), fill = event_class)) +
+  geom_tile(colour = "white", linewidth = 0.3) +
+  scale_fill_brewer(palette = "YlOrRd", name = "Events", drop = FALSE) +
+  labs(
+    title = "Political violence events by state or region and quarter",
+    x = NULL,
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+<!-- RESULT: state heatmap (max 200 words) -->
+
+### Where the events occurred
+
+```{r}
+#| label: event-point-maps
+#| fig-width: 14
+#| fig-height: 9
+point_map <- function(type) {
+  tm_shape(mmr_st) +
+    tm_polygons(fill = "grey97", col = "grey70", lwd = 0.4) +
+    tm_shape(filter(conflict_ts, event_type == type)) +
+    tm_dots(fill = type_cols[[type]], size = 0.03, fill_alpha = 0.25) +
+    tm_title(paste0(type, " (", format(sum(conflict_ts$event_type == type), big.mark = ","), " events)"), size = 0.9)
+}
+
+tmap_arrange(
+  point_map("Battles"),
+  point_map("Explosions/Remote violence"),
+  point_map("Violence against civilians"),
+  ncol = 3
+)
+```
+
+<!-- RESULT: point maps (max 200 words) -->
+
+### Township totals
+
+The first map shows the number of events. The second divides by township area, because large townships can collect more events simply by covering more land. The third shows reported fatalities. Jenks classes are used because the counts are very skewed.
+
+```{r}
+#| label: township-total-maps
+#| fig-width: 14
+#| fig-height: 9
+total_map <- function(var, title, palette) {
+  tm_shape(mmr_conflict) +
+    tm_polygons(
+      fill = var,
+      fill.scale = tm_scale_intervals(style = "jenks", n = 6, values = palette),
+      fill.legend = tm_legend(title = title),
+      col = "grey80",
+      lwd = 0.15
+    ) +
+    tm_shape(mmr_st) +
+    tm_borders(col = "grey30", lwd = 0.6) +
+    tm_title(title, size = 0.9)
+}
+
+tmap_arrange(
+  total_map("events", "Events, 2021 to 2025 Q3", "brewer.or_rd"),
+  total_map("events_per_1000sqkm", "Events per 1,000 sq km", "brewer.pu_rd"),
+  total_map("fatalities", "Reported fatalities", "brewer.reds"),
+  ncol = 3
+)
+```
+
+```{r}
+#| label: top-townships
+mmr_conflict %>%
+  st_drop_geometry() %>%
+  arrange(desc(events)) %>%
+  select(TS, ST, events, battles, explosions, vac, fatalities) %>%
+  head(15) %>%
+  kable()
+```
+
+<!-- RESULT: township totals (max 200 words) -->
+
+### Event types by township
+
+```{r}
+#| label: event-type-maps
+#| fig-width: 14
+#| fig-height: 9
+tmap_arrange(
+  total_map("battles", "Battles", "brewer.oranges"),
+  total_map("explosions", "Explosions/Remote violence", "brewer.purples"),
+  total_map("vac", "Violence against civilians", "brewer.greens"),
+  ncol = 3
+)
+```
+
+```{r}
+#| label: event-type-correlation
+mmr_conflict %>%
+  st_drop_geometry() %>%
+  select(battles, explosions, vac, fatalities) %>%
+  cor(method = "spearman") %>%
+  round(2) %>%
+  kable()
+```
+
+<!-- RESULT: event type maps (max 200 words) -->
+
+### Change by year
+
+2025 has only three quarters of data. To compare years fairly, the maps show the average number of events per quarter in each year. All five maps share the same classes.
+
+```{r}
+#| label: yearly-maps
+#| fig-width: 16
+#| fig-height: 7
+ts_year <- ts_quarter %>%
+  mutate(year = period %/% 10) %>%
+  group_by(TS_PCODE, year) %>%
+  summarise(
+    events = sum(events),
+    quarters = n_distinct(period),
+    .groups = "drop"
+  ) %>%
+  mutate(events_per_quarter = events / quarters)
+
+ts_year_sf <- mmr_ts %>%
+  select(TS_PCODE, TS, ST) %>%
+  left_join(ts_year, by = "TS_PCODE")
+
+tm_shape(ts_year_sf) +
+  tm_polygons(
+    fill = "events_per_quarter",
+    fill.scale = tm_scale_intervals(
+      breaks = c(0, 1, 5, 10, 25, 50, Inf),
+      values = "brewer.or_rd"
+    ),
+    fill.legend = tm_legend(title = "Events per quarter"),
+    col = "grey80",
+    lwd = 0.1
+  ) +
+  tm_facets_wrap(by = "year", ncol = 5)
+```
+
+```{r}
+#| label: yearly-active-townships
+ts_year %>%
+  group_by(year) %>%
+  summarise(
+    townships_with_events = sum(events > 0),
+    townships_10_plus_per_quarter = sum(events_per_quarter >= 10),
+    median_events_per_quarter = median(events_per_quarter),
+    .groups = "drop"
+  ) %>%
+  kable()
+```
+
+<!-- RESULT: yearly maps (max 200 words) -->
+
+### Interactive township explorer
+
+The map below can be zoomed. Click a township to see its state or region and its event counts. The polygons are simplified by 500 m to keep the page light.
+
+```{r}
+#| label: interactive-map
+mmr_web <- mmr_conflict %>%
+  st_simplify(dTolerance = 500, preserveTopology = TRUE)
+
+tmap_mode("view")
+
+interactive_map <- tm_shape(mmr_web) +
+  tm_polygons(
+    fill = "events",
+    fill.scale = tm_scale_intervals(style = "jenks", n = 6, values = "brewer.or_rd"),
+    fill.legend = tm_legend(title = "Events"),
+    fill_alpha = 0.8,
+    col = "grey40",
+    lwd = 0.3,
+    id = "TS",
+    popup.vars = c("ST", "events", "battles", "explosions", "vac", "fatalities")
+  )
+
+interactive_map
+```
+
+```{r}
+#| label: back-to-plot-mode
+tmap_mode("plot")
+```
+
+## Spatial weights
+
+Local and global statistics need a definition of neighbours. I use Queen contiguity, so townships that share a border or a corner are neighbours. This follows the course examples and suits administrative areas with very different sizes.
+
+An island township has no contiguous neighbour. A township without neighbours cannot have a local statistic, so I link each isolated township to its nearest township, measured between points on the surface of the polygons. The link is added in both directions so the neighbour list stays symmetric.
+
+```{r}
+#| label: queen-neighbours
+nb_queen <- poly2nb(mmr_conflict, queen = TRUE)
+summary(nb_queen)
+
+isolated <- which(card(nb_queen) == 0)
+mmr_conflict$TS[isolated]
+```
+
+```{r}
+#| label: fix-isolates
+ts_coords <- st_coordinates(st_point_on_surface(st_geometry(mmr_conflict)))
+knn1 <- knn2nb(knearneigh(ts_coords, k = 1))
+
+nb_fixed <- nb_queen
+for (i in isolated) {
+  j <- knn1[[i]]
+  nb_fixed[[i]] <- sort(unique(c(nb_fixed[[i]][nb_fixed[[i]] > 0], j)))
+  nb_fixed[[j]] <- sort(unique(c(nb_fixed[[j]][nb_fixed[[j]] > 0], i)))
+}
+class(nb_fixed) <- c("nb", "list")
+
+wt_fixed <- st_weights(nb_fixed, style = "W")
+nb_self <- include_self(nb_fixed)
+wt_self <- st_weights(nb_self, style = "W")
+
+tibble(
+  townships = length(nb_fixed),
+  isolated_before_fix = length(isolated),
+  isolated_after_fix = sum(card(nb_fixed) == 0),
+  min_neighbours = min(card(nb_fixed)),
+  mean_neighbours = round(mean(card(nb_fixed)), 2),
+  max_neighbours = max(card(nb_fixed))
+) %>%
+  kable()
+```
+
+```{r}
+#| label: neighbour-plot
+#| fig-width: 7
+#| fig-height: 9
+plot(st_geometry(mmr_conflict), border = "grey75", lwd = 0.3,
+     main = "Queen contiguity neighbours with island links")
+plot(nb_fixed, ts_coords, add = TRUE, col = "#2c7fb8", lwd = 0.4, cex = 0.2)
+```
+
+Row standardised weights are used. Each township's spatial lag is the average of its neighbours. `wt_fixed` is used for Moran's I. For Gi\*, the township itself is included in its own neighbourhood (`nb_self` and `wt_self`).
+
+## Global spatial autocorrelation
+
+Before mapping local patterns, I test whether each variable is spatially clustered overall. The permutation test shuffles the values across townships 999 times while the neighbour structure stays fixed.
+
+```{r}
+#| label: global-moran
+lmsa_vars <- c(
+  events = "All political violence",
+  battles = "Battles",
+  explosions = "Explosions/remote violence",
+  vac = "Violence against civilians",
+  fatalities = "Reported fatalities"
+)
+
+set.seed(1234)
+global_tbl <- map_dfr(names(lmsa_vars), function(v) {
+  gm <- global_moran_perm(mmr_conflict[[v]], nb_fixed, wt_fixed, nsim = 999)
+  tibble(
+    variable = lmsa_vars[[v]],
+    moran_i = round(unname(gm$statistic), 3),
+    p_value = gm$p.value
+  )
+})
+
+kable(global_tbl)
+```
+
+<!-- RESULT: global Moran -->
+
+## Local measures of spatial association
+
+### Local Moran's I: clusters and outliers
+
+Local Moran's I compares each township with the average of its neighbours. High-High and Low-Low are clusters of similar values. High-Low and Low-High are spatial outliers. The counts are very skewed, so I use the permutation p value (`p_ii_sim`, 499 simulations) instead of the normal approximation. Only results with p \< 0.05 are coloured.
+
+```{r}
+#| label: local-moran
+set.seed(1234)
+lisa_long <- do.call(rbind, lapply(names(lmsa_vars), function(v) {
+  res <- local_moran(mmr_conflict[[v]], nb_fixed, wt_fixed, nsim = 499)
+  mmr_conflict %>%
+    select(TS_PCODE, TS, ST) %>%
+    mutate(
+      variable = lmsa_vars[[v]],
+      value = mmr_conflict[[v]],
+      ii = res$ii,
+      p_ii_sim = res$p_ii_sim,
+      quadrant = as.character(res$mean)
+    )
+}))
+
+lisa_long <- lisa_long %>%
+  mutate(
+    variable = factor(variable, levels = lmsa_vars),
+    lisa_class = if_else(p_ii_sim < 0.05, quadrant, "Not significant"),
+    lisa_class = factor(
+      lisa_class,
+      levels = c("Not significant", "High-High", "Low-Low", "High-Low", "Low-High")
+    )
+  )
+```
+
+```{r}
+#| label: lisa-maps
+#| fig-width: 16
+#| fig-height: 7
+lisa_cols <- c("grey92", "#d7191c", "#2c7bb6", "#fdae61", "#abd9e9")
+
+tm_shape(lisa_long) +
+  tm_polygons(
+    fill = "lisa_class",
+    fill.scale = tm_scale_categorical(values = lisa_cols),
+    fill.legend = tm_legend(title = "LISA, p < 0.05"),
+    col = "white",
+    lwd = 0.15
+  ) +
+  tm_facets_wrap(by = "variable", ncol = 5)
+```
+
+```{r}
+#| label: lisa-counts
+lisa_long %>%
+  st_drop_geometry() %>%
+  count(variable, lisa_class) %>%
+  pivot_wider(names_from = lisa_class, values_from = n, values_fill = 0) %>%
+  kable()
+```
+
+```{r}
+#| label: lisa-high-high
+lisa_long %>%
+  st_drop_geometry() %>%
+  filter(variable == "All political violence", lisa_class == "High-High") %>%
+  count(ST, name = "high_high_townships", sort = TRUE) %>%
+  kable()
+```
+
+<!-- RESULT: LISA (max 200 words) -->
+
+### Getis-Ord Gi\*: hot spots and cold spots
+
+Gi\* looks at the total of a township and its neighbours together. A significant positive value is a hot spot, an area where high values are concentrated. A significant negative value is a cold spot. I use 499 permutations, so p \< 0.01 and p \< 0.05 can be separated.
+
+```{r}
+#| label: local-gi
+set.seed(1234)
+gi_long <- do.call(rbind, lapply(names(lmsa_vars), function(v) {
+  res <- local_gstar_perm(mmr_conflict[[v]], nb_self, wt_self, nsim = 499)
+  mmr_conflict %>%
+    select(TS_PCODE, TS, ST) %>%
+    mutate(
+      variable = lmsa_vars[[v]],
+      value = mmr_conflict[[v]],
+      gi_star = res$gi_star,
+      p_sim = res$p_sim
+    )
+}))
+
+gi_levels <- c(
+  "Cold spot, p < 0.01", "Cold spot, p < 0.05", "Not significant",
+  "Hot spot, p < 0.05", "Hot spot, p < 0.01"
+)
+
+gi_long <- gi_long %>%
+  mutate(
+    variable = factor(variable, levels = lmsa_vars),
+    gi_class = case_when(
+      gi_star > 0 & p_sim < 0.01 ~ "Hot spot, p < 0.01",
+      gi_star > 0 & p_sim < 0.05 ~ "Hot spot, p < 0.05",
+      gi_star < 0 & p_sim < 0.01 ~ "Cold spot, p < 0.01",
+      gi_star < 0 & p_sim < 0.05 ~ "Cold spot, p < 0.05",
+      TRUE ~ "Not significant"
+    ),
+    gi_class = factor(gi_class, levels = gi_levels)
+  )
+```
+
+```{r}
+#| label: gi-maps
+#| fig-width: 16
+#| fig-height: 7
+gi_cols <- c("#2166ac", "#92c5de", "grey92", "#f4a582", "#b2182b")
+
+tm_shape(gi_long) +
+  tm_polygons(
+    fill = "gi_class",
+    fill.scale = tm_scale_categorical(values = gi_cols),
+    fill.legend = tm_legend(title = "Gi*"),
+    col = "white",
+    lwd = 0.15
+  ) +
+  tm_facets_wrap(by = "variable", ncol = 5)
+```
+
+```{r}
+#| label: gi-counts
+gi_long %>%
+  st_drop_geometry() %>%
+  count(variable, gi_class) %>%
+  pivot_wider(names_from = gi_class, values_from = n, values_fill = 0) %>%
+  kable()
+```
+
+```{r}
+#| label: gi-hot-states
+gi_long %>%
+  st_drop_geometry() %>%
+  filter(variable == "All political violence", str_detect(gi_class, "Hot")) %>%
+  count(ST, name = "hot_spot_townships", sort = TRUE) %>%
+  kable()
+```
+
+<!-- RESULT: Gi* (max 200 words) -->
+
+### Agreement between the two local measures
+
+```{r}
+#| label: lisa-gi-agreement
+lisa_long %>%
+  st_drop_geometry() %>%
+  filter(variable == "All political violence") %>%
+  select(TS_PCODE, lisa_class) %>%
+  left_join(
+    gi_long %>%
+      st_drop_geometry() %>%
+      filter(variable == "All political violence") %>%
+      select(TS_PCODE, gi_class),
+    by = "TS_PCODE"
+  ) %>%
+  count(lisa_class, gi_class) %>%
+  pivot_wider(names_from = gi_class, values_from = n, values_fill = 0) %>%
+  kable()
+```
+
+<!-- RESULT: agreement -->
+
+## Emerging hot spot analysis
+
+### Gi\* for every township and quarter
+
+EHSA starts with a Gi\* value for every township in every quarter. I follow the Chapter 11 workflow. One detail is different: I pass the neighbour list without the township itself, because `local_gstar_perm()` adds the township automatically when the list does not say that it is already included. This keeps each township in its own neighbourhood exactly once.
+
+```{r}
+#| label: cube-weights
+conflict_nb <- conflict_st %>%
+  activate("geometry") %>%
+  mutate(nb = nb_fixed, wt = wt_fixed, .before = 1) %>%
+  set_nbs("nb") %>%
+  set_wts("wt")
+```
+
+```{r}
+#| label: gi-by-quarter
+set.seed(1234)
+gi_stars <- conflict_nb %>%
+  group_by(period) %>%
+  mutate(gi_star = local_gstar_perm(events, nb, wt, nsim = 99)) %>%
+  tidyr::unnest(gi_star)
+
+gi_stars_tbl <- gi_stars %>%
+  as_tibble() %>%
+  ungroup() %>%
+  select(TS_PCODE, period, events, gi_star, p_sim) %>%
+  left_join(quarter_lookup, by = "period")
+
+gi_stars_tbl %>%
+  group_by(quarter_label) %>%
+  summarise(
+    hot_spots = sum(gi_star > 0 & p_sim < 0.05),
+    cold_spots = sum(gi_star < 0 & p_sim < 0.05),
+    .groups = "drop"
+  ) %>%
+  kable()
+```
+
+### Mann-Kendall test for one township
+
+The Mann-Kendall test checks whether a series moves up or down in a consistent way. Tau above zero means an upward trend. I show the township with the most events as an example.
+
+```{r}
+#| label: mk-example
+top_pcode <- mmr_conflict %>%
+  st_drop_geometry() %>%
+  slice_max(events, n = 1, with_ties = FALSE) %>%
+  pull(TS_PCODE)
+
+top_name <- mmr_conflict$TS[mmr_conflict$TS_PCODE == top_pcode]
+
+top_series <- gi_stars_tbl %>%
+  filter(TS_PCODE == top_pcode)
+
+p_top <- ggplot(top_series, aes(x = quarter_start, y = gi_star)) +
+  geom_line(colour = "#b2182b", linewidth = 0.9) +
+  geom_point(aes(text = paste0(quarter_label, "<br>Events: ", events, "<br>Gi*: ", round(gi_star, 2))),
+             colour = "#b2182b", size = 1.8) +
+  labs(
+    title = paste0("Gi* by quarter: ", top_name, " township"),
+    x = NULL,
+    y = "Gi*"
+  ) +
+  theme_light()
+
+ggplotly(p_top, tooltip = "text")
+```
+
+```{r}
+#| label: mk-example-test
+top_series %>%
+  summarise(mk = list(unclass(Kendall::MannKendall(gi_star)))) %>%
+  tidyr::unnest_wider(mk) %>%
+  kable()
+```
+
+### Mann-Kendall test for all townships
+
+```{r}
+#| label: mk-all
+safe_mk <- function(x) {
+  out <- tryCatch(
+    unclass(Kendall::MannKendall(x)),
+    error = function(e) list(tau = NA_real_, sl = NA_real_, S = NA_real_, D = NA_real_, varS = NA_real_)
+  )
+  out[c("tau", "sl", "S", "D", "varS")]
+}
+
+mk_all <- gi_stars_tbl %>%
+  group_by(TS_PCODE) %>%
+  summarise(mk = list(safe_mk(gi_star)), .groups = "drop") %>%
+  tidyr::unnest_wider(mk) %>%
+  mutate(across(c(tau, sl, S, D, varS), as.numeric)) %>%
+  left_join(mmr_conflict %>% st_drop_geometry() %>% select(TS_PCODE, TS, ST, events), by = "TS_PCODE")
+
+mk_all %>%
+  summarise(
+    significant_upward = sum(sl < 0.05 & tau > 0, na.rm = TRUE),
+    significant_downward = sum(sl < 0.05 & tau < 0, na.rm = TRUE),
+    no_significant_trend = sum(sl >= 0.05, na.rm = TRUE)
+  ) %>%
+  kable()
+```
+
+```{r}
+#| label: mk-strongest
+mk_all %>%
+  filter(sl < 0.05) %>%
+  arrange(desc(abs(tau))) %>%
+  select(TS, ST, events, tau, sl) %>%
+  mutate(tau = round(tau, 3), sl = signif(sl, 3)) %>%
+  head(10) %>%
+  kable()
+```
+
+<!-- RESULT: Mann-Kendall -->
+
+### EHSA classification
+
+`emerging_hotspot_analysis()` combines the significance of Gi\* in each quarter with the Mann-Kendall trend of the Gi\* series. I use one time lag, 99 simulations and a 0.05 significance threshold, as required in the brief. The same Queen neighbours with island links are used, with each township included in its own neighbourhood.
+
+```{r}
+#| label: ehsa
+conflict_ehsa_cube <- conflict_st %>%
+  activate("geometry") %>%
+  mutate(nb = nb_self, wt = wt_self, .before = 1)
+
+set.seed(1234)
+ehsa <- emerging_hotspot_analysis(
+  x = conflict_ehsa_cube,
+  .var = "events",
+  k = 1,
+  nb_col = "nb",
+  wt_col = "wt",
+  nsim = 99,
+  threshold = 0.05
+)
+```
+
+```{r}
+#| label: ehsa-palette
+ehsa_palette <- c(
+  "persistent hotspot" = "#67000d",
+  "intensifying hotspot" = "#cb181d",
+  "consecutive hotspot" = "#f16913",
+  "new hotspot" = "#fd8d3c",
+  "sporadic hotspot" = "#fdd0a2",
+  "oscilating hotspot" = "#e7298a",
+  "oscillating hotspot" = "#e7298a",
+  "diminishing hotspot" = "#ae017e",
+  "historical hotspot" = "#8c6bb1",
+  "no pattern detected" = "grey90",
+  "historical coldspot" = "#41ae76",
+  "diminishing coldspot" = "#66c2a4",
+  "oscilating coldspot" = "#99d8c9",
+  "oscillating coldspot" = "#99d8c9",
+  "sporadic coldspot" = "#c6dbef",
+  "new coldspot" = "#9ecae1",
+  "consecutive coldspot" = "#6baed6",
+  "intensifying coldspot" = "#2171b5",
+  "persistent coldspot" = "#08306b"
+)
+
+ehsa_factor <- function(x) {
+  present <- unique(x)
+  factor(x, levels = c(intersect(names(ehsa_palette), present), setdiff(present, names(ehsa_palette))))
+}
+
+ehsa_values <- function(f) {
+  cols <- ehsa_palette[levels(f)]
+  cols[is.na(cols)] <- "grey50"
+  unname(cols)
+}
+
+mmr_ehsa <- mmr_conflict %>%
+  left_join(ehsa, by = c("TS_PCODE" = "location")) %>%
+  mutate(ehsa_class = ehsa_factor(classification))
+```
+
+The Chapter 11 example maps only locations with a Mann-Kendall p value below 0.05. I do not apply that extra filter. A persistent hot spot is defined as a location that is a significant hot spot in at least 90% of the quarters but has no significant trend. Filtering on the trend p value would remove exactly these places. The significance of Gi\* in each quarter (p \< 0.05) is already part of the classification rules. The table below shows how the two p values relate.
+
+```{r}
+#| label: ehsa-p-table
+mmr_ehsa %>%
+  st_drop_geometry() %>%
+  mutate(trend_p_below_0.05 = p_value < 0.05) %>%
+  count(ehsa_class, trend_p_below_0.05) %>%
+  pivot_wider(names_from = trend_p_below_0.05, values_from = n, values_fill = 0) %>%
+  kable()
+```
+
+```{r}
+#| label: ehsa-bar
+#| fig-width: 9
+#| fig-height: 5
+ehsa_cols_named <- setNames(ehsa_values(mmr_ehsa$ehsa_class), levels(mmr_ehsa$ehsa_class))
+
+ggplot(st_drop_geometry(mmr_ehsa), aes(y = fct_rev(ehsa_class), fill = ehsa_class)) +
+  geom_bar(show.legend = FALSE) +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = -0.2, size = 3.5) +
+  scale_fill_manual(values = ehsa_cols_named) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    title = "Number of townships in each EHSA class",
+    x = "Townships",
+    y = NULL
+  ) +
+  theme_minimal()
+```
+
+```{r}
+#| label: ehsa-map
+#| fig-width: 8
+#| fig-height: 10
+tm_shape(mmr_ehsa) +
+  tm_polygons(
+    fill = "ehsa_class",
+    fill.scale = tm_scale_categorical(values = ehsa_values(mmr_ehsa$ehsa_class)),
+    fill.legend = tm_legend(title = "EHSA class"),
+    col = "white",
+    lwd = 0.15
+  ) +
+  tm_shape(mmr_st) +
+  tm_borders(col = "grey30", lwd = 0.6) +
+  tm_title("Emerging hot spots of political violence by township")
+```
+
+```{r}
+#| label: ehsa-summary
+ehsa_summary <- mmr_ehsa %>%
+  st_drop_geometry() %>%
+  group_by(ehsa_class) %>%
+  summarise(
+    townships = n(),
+    events = sum(events),
+    share_of_events_pct = round(sum(events) / sum(mmr_conflict$events) * 100, 1),
+    median_tau = round(median(tau, na.rm = TRUE), 2),
+    main_states = paste(head(names(sort(table(ST), decreasing = TRUE)), 3), collapse = ", "),
+    example_townships = paste(head(TS[order(-events)], 5), collapse = ", "),
+    .groups = "drop"
+  )
+
+kable(ehsa_summary)
+```
+
+```{r}
+#| label: ehsa-class-trend
+#| fig-width: 12
+#| fig-height: 7
+class_trend <- ts_quarter %>%
+  left_join(
+    mmr_ehsa %>% st_drop_geometry() %>% select(TS_PCODE, ehsa_class),
+    by = "TS_PCODE"
+  ) %>%
+  group_by(ehsa_class, period) %>%
+  summarise(mean_events = mean(events), .groups = "drop") %>%
+  left_join(quarter_lookup, by = "period")
+
+ggplot(class_trend, aes(x = quarter_start, y = mean_events, colour = ehsa_class)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 1) +
+  facet_wrap(~ ehsa_class, scales = "free_y") +
+  scale_colour_manual(values = ehsa_cols_named) +
+  labs(
+    title = "Average events per township and quarter, by EHSA class",
+    x = NULL,
+    y = "Mean events"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+<!-- RESULT: EHSA class descriptions (max 250 words per class) -->
+
+### EHSA by event type
+
+The three event types can follow different paths. I repeat EHSA for each type with the same settings.
+
+```{r}
+#| label: ehsa-types
+type_vars <- c(
+  battles = "Battles",
+  explosions = "Explosions/remote violence",
+  vac = "Violence against civilians"
+)
+
+set.seed(1234)
+ehsa_types <- map_dfr(names(type_vars), function(v) {
+  emerging_hotspot_analysis(
+    x = conflict_ehsa_cube,
+    .var = v,
+    k = 1,
+    nb_col = "nb",
+    wt_col = "wt",
+    nsim = 99,
+    threshold = 0.05
+  ) %>%
+    as_tibble() %>%
+    mutate(variable = type_vars[[v]])
+})
+
+ehsa_types_sf <- mmr_ts %>%
+  select(TS_PCODE, TS, ST) %>%
+  inner_join(ehsa_types, by = c("TS_PCODE" = "location")) %>%
+  mutate(
+    variable = factor(variable, levels = type_vars),
+    ehsa_class = ehsa_factor(classification)
+  )
+```
+
+```{r}
+#| label: ehsa-type-maps
+#| fig-width: 14
+#| fig-height: 8
+tm_shape(ehsa_types_sf) +
+  tm_polygons(
+    fill = "ehsa_class",
+    fill.scale = tm_scale_categorical(values = ehsa_values(ehsa_types_sf$ehsa_class)),
+    fill.legend = tm_legend(title = "EHSA class"),
+    col = "white",
+    lwd = 0.15
+  ) +
+  tm_facets_wrap(by = "variable", ncol = 3)
+```
+
+```{r}
+#| label: ehsa-type-counts
+ehsa_types_sf %>%
+  st_drop_geometry() %>%
+  count(ehsa_class, variable) %>%
+  pivot_wider(names_from = variable, values_from = n, values_fill = 0) %>%
+  kable()
+```
+
+<!-- RESULT: EHSA by type -->
+
+## Value added analysis: does the township boundary change the result?
+
+Townships in Myanmar differ greatly in size. Some townships in Kachin and Shan are many times larger than townships in Yangon. A count in a large township is spread over a much larger area, and the result can change if the same events are grouped by other boundaries. This is the modifiable areal unit problem.
+
+To test this, I repeat the Gi\* and EHSA steps on a grid of equal area hexagons, using the same idea as the hexagons in Chapter 17. Each hexagon is 25 km across, about 540 sq km. Every event is counted in the hexagon that contains its point. If the main hot spots also appear on the hexagon grid, they are less likely to be an artefact of the township boundaries.
+
+### Hexagon grid and counts
+
+```{r}
+#| label: hex-grid
+hex_grid <- st_sf(geometry = st_make_grid(mmr_ts, cellsize = 25000, square = FALSE))
+
+hex_mmr <- hex_grid[lengths(st_intersects(hex_grid, mmr_ts)) > 0, ] %>%
+  mutate(hex_id = row_number())
+
+hex_events <- conflict_ts %>%
+  select(event_id_cnty, period) %>%
+  st_join(hex_mmr, join = st_intersects) %>%
+  st_drop_geometry() %>%
+  distinct(event_id_cnty, .keep_all = TRUE) %>%
+  filter(!is.na(hex_id))
+
+hex_quarter <- hex_events %>%
+  count(hex_id, period, name = "events") %>%
+  complete(hex_id = hex_mmr$hex_id, period = quarter_lookup$period, fill = list(events = 0L)) %>%
+  arrange(hex_id, period)
+
+hex_total <- hex_mmr %>%
+  left_join(hex_quarter %>% group_by(hex_id) %>% summarise(events = sum(events), .groups = "drop"), by = "hex_id")
+
+tibble(
+  hexagons = nrow(hex_mmr),
+  hexagon_area_sqkm = round(as.numeric(st_area(hex_mmr[1, ])) / 1000000),
+  events_counted = sum(hex_quarter$events),
+  hexagons_with_events = sum(hex_total$events > 0),
+  rows_in_cube = nrow(hex_quarter)
+) %>%
+  kable()
+```
+
+### Hexagon hot spots
+
+```{r}
+#| label: hex-gi
+hex_nb <- include_self(st_contiguity(hex_mmr))
+hex_wt <- st_weights(hex_nb, style = "W")
+
+set.seed(1234)
+hex_gi_res <- local_gstar_perm(hex_total$events, hex_nb, hex_wt, nsim = 499)
+
+hex_total <- hex_total %>%
+  mutate(
+    gi_star = hex_gi_res$gi_star,
+    p_sim = hex_gi_res$p_sim,
+    gi_class = case_when(
+      gi_star > 0 & p_sim < 0.01 ~ "Hot spot, p < 0.01",
+      gi_star > 0 & p_sim < 0.05 ~ "Hot spot, p < 0.05",
+      gi_star < 0 & p_sim < 0.01 ~ "Cold spot, p < 0.01",
+      gi_star < 0 & p_sim < 0.05 ~ "Cold spot, p < 0.05",
+      TRUE ~ "Not significant"
+    ),
+    gi_class = factor(gi_class, levels = gi_levels)
+  )
+```
+
+```{r}
+#| label: hex-maps
+#| fig-width: 12
+#| fig-height: 9
+hex_count_map <- tm_shape(hex_total) +
+  tm_polygons(
+    fill = "events",
+    fill.scale = tm_scale_intervals(breaks = c(0, 1, 10, 50, 100, 250, 500, Inf), values = "brewer.or_rd"),
+    fill.legend = tm_legend(title = "Events"),
+    col = "grey85",
+    lwd = 0.1
+  ) +
+  tm_shape(mmr_st) +
+  tm_borders(col = "grey30", lwd = 0.6) +
+  tm_title("Events per 25 km hexagon", size = 0.9)
+
+hex_gi_map <- tm_shape(hex_total) +
+  tm_polygons(
+    fill = "gi_class",
+    fill.scale = tm_scale_categorical(values = gi_cols),
+    fill.legend = tm_legend(title = "Gi*"),
+    col = "grey85",
+    lwd = 0.1
+  ) +
+  tm_shape(mmr_st) +
+  tm_borders(col = "grey30", lwd = 0.6) +
+  tm_title("Gi* hot and cold spots, hexagons", size = 0.9)
+
+tmap_arrange(hex_count_map, hex_gi_map, ncol = 2)
+```
+
+### Hexagon EHSA and comparison with townships
+
+```{r}
+#| label: hex-ehsa
+hex_st <- spacetime(
+  hex_quarter,
+  hex_mmr,
+  .loc_col = "hex_id",
+  .time_col = "period"
+)
+
+is_spacetime_cube(hex_st)
+
+set.seed(1234)
+hex_ehsa <- emerging_hotspot_analysis(
+  x = hex_st,
+  .var = "events",
+  k = 1,
+  nsim = 99,
+  threshold = 0.05
+)
+
+hex_ehsa_sf <- hex_mmr %>%
+  left_join(hex_ehsa, by = c("hex_id" = "location")) %>%
+  mutate(ehsa_class = ehsa_factor(classification))
+
+hex_ehsa_sf %>%
+  st_drop_geometry() %>%
+  count(ehsa_class, name = "hexagons") %>%
+  kable()
+```
+
+To compare the two results, each hexagon takes the township class at its centre point. I group the classes into three families: any hot spot class, any cold spot class, and no pattern.
+
+```{r}
+#| label: hex-compare
+ehsa_family <- function(x) {
+  case_when(
+    str_detect(x, "hotspot") ~ "Hot spot",
+    str_detect(x, "coldspot") ~ "Cold spot",
+    TRUE ~ "No pattern"
+  )
+}
+
+hex_compare <- hex_ehsa_sf %>%
+  st_centroid() %>%
+  st_join(mmr_ehsa %>% select(township_class = classification), join = st_intersects) %>%
+  st_drop_geometry() %>%
+  filter(!is.na(township_class)) %>%
+  mutate(
+    hexagon_family = ehsa_family(classification),
+    township_family = ehsa_family(township_class)
+  )
+
+hex_compare %>%
+  count(township_family, hexagon_family) %>%
+  pivot_wider(names_from = hexagon_family, values_from = n, values_fill = 0) %>%
+  kable()
+
+hex_agreement <- tibble(
+  hexagons_compared = nrow(hex_compare),
+  same_family_pct = round(mean(hex_compare$hexagon_family == hex_compare$township_family) * 100, 1),
+  township_hot_also_hexagon_hot_pct = round(
+    mean(hex_compare$hexagon_family[hex_compare$township_family == "Hot spot"] == "Hot spot") * 100, 1
+  )
+)
+
+kable(hex_agreement)
+```
+
+```{r}
+#| label: hex-compare-maps
+#| fig-width: 12
+#| fig-height: 9
+family_levels <- c("Cold spot", "No pattern", "Hot spot")
+family_cols <- c("#2171b5", "grey90", "#cb181d")
+
+mmr_family <- mmr_ehsa %>%
+  mutate(family = factor(ehsa_family(classification), levels = family_levels))
+
+hex_family <- hex_ehsa_sf %>%
+  mutate(family = factor(ehsa_family(classification), levels = family_levels))
+
+family_map <- function(data, title) {
+  tm_shape(data) +
+    tm_polygons(
+      fill = "family",
+      fill.scale = tm_scale_categorical(values = family_cols),
+      fill.legend = tm_legend(title = "EHSA family"),
+      col = "white",
+      lwd = 0.1
+    ) +
+    tm_shape(mmr_st) +
+    tm_borders(col = "grey30", lwd = 0.6) +
+    tm_title(title, size = 0.9)
+}
+
+tmap_arrange(
+  family_map(mmr_family, "Township EHSA"),
+  family_map(hex_family, "25 km hexagon EHSA"),
+  ncol = 2
+)
+```
+
+<!-- RESULT: hexagon comparison -->
+
+```{r}
+#| label: save-results
+dir.create("data/takehome2/rds", recursive = TRUE, showWarnings = FALSE)
+
+mmr_slide <- mmr_conflict %>%
+  st_simplify(dTolerance = 300, preserveTopology = TRUE)
+
+write_rds(
+  list(
+    mmr = mmr_slide,
+    states = st_simplify(mmr_st, dTolerance = 300, preserveTopology = TRUE),
+    hex = hex_mmr,
+    quarter_lookup = quarter_lookup,
+    national_q = national_q,
+    yearly_tbl = yearly_tbl,
+    state_q = state_q,
+    ts_year = ts_year,
+    global_tbl = global_tbl,
+    lisa = st_drop_geometry(lisa_long),
+    gi = st_drop_geometry(gi_long),
+    ehsa = st_drop_geometry(mmr_ehsa) %>% select(TS_PCODE, TS, ST, events, tau, p_value, classification),
+    ehsa_summary = ehsa_summary,
+    class_trend = class_trend,
+    ehsa_types = ehsa_types,
+    hex_total = st_drop_geometry(hex_total),
+    hex_ehsa = hex_ehsa,
+    hex_agreement = hex_agreement
+  ),
+  "data/takehome2/rds/take-home_ex02_results.rds"
+)
+```
+
+## Integrated findings
+
+<!-- RESULT: integrated findings -->
+
+## Implications for peace-building
+
+<!-- RESULT: implications -->
+
+## Limitations and assumptions
+
+```{r}
+#| label: assumptions
+assumptions <- tribble(
+  ~decision, ~reason, ~limitation,
+  "Use the three ACLED political violence event types", "They describe armed violence rather than protest or strategic events", "Protest repression and strategic developments are excluded",
+  "Remove geographic precision code 3", "Their points represent a wider region, not the township", "A small number of real events are lost from the township counts",
+  "Point-in-polygon join with a 5 km coastal snap", "Uses official MIMU boundaries and Pcodes", "Points coded at a township centre still carry location error",
+  "Use counts, not rates", "No population at risk is provided in the brief", "Large or populous townships can rank high partly because of size",
+  "Queen contiguity with island links", "Every township needs at least one neighbour", "The island links are a modelling choice, not a physical border",
+  "Quarterly time steps", "Balances detail and the number of zero quarters", "Short events inside one quarter are smoothed",
+  "99 to 999 permutations", "Keeps the report reproducible in reasonable time", "Simulated p values have limited precision",
+  "ACLED reported events and fatalities", "Best available systematic event source", "Access limits, media coverage and reporting bias affect what is recorded"
+)
+
+kable(assumptions)
+```
+
+<!-- RESULT: limitation paragraph -->
+
+## Conclusion
+
+<!-- RESULT: conclusion -->
+
+## References
+
+-   Course brief: [Take home Exercise 2](https://isss626-ay2026-27aug.netlify.app/take-home_ex02)
+-   ACLED: [Armed Conflict Location & Event Data Project](https://acleddata.com/)
+-   Boundary data: [MIMU Geonode, Myanmar Township Boundaries MIMU v9.4](https://geonode.themimu.info/layers/geonode%3Ammr_polbnda_adm3_250k_mimu_1)
+-   Kam, T. S. [R for Geospatial Data Science and Analytics](https://r4gdsa.netlify.app/), Chapters 8 to 11 and 17.
+-   Mack, E. and Kam, T. S. (2018). [Spatial-temporal dimensions of conflict](https://ink.library.smu.edu.sg/cgi/viewcontent.cgi?article=5334&context=sis_research). GeoHumanities 2018.
+-   Parry, J. [sfdep: Spatial Dependence for Simple Features](https://sfdep.josiahparry.com/).
+-   ACLED. [Between cooperation and competition: The struggle of resistance groups in Myanmar](https://acleddata.com/report/between-cooperation-and-competition-struggle-resistance-groups-myanmar).

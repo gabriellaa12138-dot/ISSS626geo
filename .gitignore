@@ -7,3 +7,6 @@
 
 /.quarto/
 **/*.quarto_ipynb
+
+# ACLED terms of use: do not redistribute the raw event file
+data/takehome2/aspatial/ACLED_Data_Myanmar_Jan2021-Sep2025.csv

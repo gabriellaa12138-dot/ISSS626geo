@@ -33,6 +33,8 @@ website:
             text: Technical Report 1
           - href: take-home_ex01_slides.qmd
             text: Executive Summary 1
+          - href: take-home_ex02.qmd
+            text: Technical Report 2
       - href: about.qmd
         text: About
 
