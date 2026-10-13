@@ -21,6 +21,8 @@ website:
             text: Hands-on 5
           - href: hands-on_ex06.qmd
             text: Hands-on 6
+          - href: hands-on_ex07.qmd
+            text: Hands-on 7
       - text: In-class
         menu:
           - href: In-class Exercise 4.qmd

@@ -12,6 +12,7 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 -   [Hands-on Exercise 4: Spatial Weights and Applications](hands-on_ex04.qmd)
 -   [Hands-on Exercise 5: Global and Local Spatial Autocorrelation](hands-on_ex05.qmd)
 -   [Hands-on Exercise 6: Geographical Segmentation with Spatially Constrained Clustering](hands-on_ex06.qmd)
+-   [Hands-on Exercise 7: Modelling Geographical Accessibility](hands-on_ex07.qmd)
 
 ## Take home Exercise
 

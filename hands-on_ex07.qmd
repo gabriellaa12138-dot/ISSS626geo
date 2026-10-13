@@ -1,0 +1,485 @@
+---
+title: "Hands-on Exercise 7: Modelling Geographical Accessibility"
+author: "Zhou Ziying"
+date: "2026-10-12"
+date-modified: today
+execute:
+  echo: true
+  eval: true
+  warning: false
+  message: false
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    code-fold: false
+    fig-width: 10
+    fig-height: 6
+---
+
+## Overview
+
+This exercise follows [Chapter 17](https://r4gdsa.netlify.app/chap17.html). I measure how easy it is to reach eldercare centres from different parts of Singapore. Singapore is divided into small hexagons, and each hexagon gets an accessibility score.
+
+I use three methods from the chapter: Hansen's potential model, KD2SFCA and the Spatial Accessibility Measure (SAM). They all use the road network distance between each hexagon and each eldercare centre. They differ in how they treat distance and competition between users.
+
+## 17.2 The Data
+
+Four data sets are used. They are the course files for this chapter, saved in `data/chap17`.
+
+-   `MP14_SUBZONE_NO_SEA_PL`: URA Master Plan 2014 subzone boundary.
+-   `hexagons`: 250m radius hexagons that cover Singapore. These are the origins.
+-   `ELDERCARE`: locations of eldercare services. These are the destinations.
+-   `OD_Matrix.csv`: the network distance from every hexagon to every eldercare centre. All costs are in metres.
+
+## 17.3 Getting Started
+
+These packages cover spatial data, accessibility models, maps and charts. I set a CRAN mirror first, so `pacman` can install SpatialAcc during render if it is missing.
+
+```{r}
+#| label: chapter-17-demo-01
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+pacman::p_load(tmap, SpatialAcc, sf,
+               ggstatsplot, reshape2,
+               tidyverse)
+
+tmap_mode("plot")
+```
+
+## 17.4 Geospatial Data Wrangling
+
+### 17.4.1 Importing geospatial data
+
+The three shapefiles are imported with `st_read()`. The subzones are polygons, the hexagons are polygons and the eldercare centres are points.
+
+```{r}
+#| label: chapter-17-demo-02
+mpsz <- st_read(dsn = "data/chap17/geospatial", layer = "MP14_SUBZONE_NO_SEA_PL")
+```
+
+```{r}
+#| label: chapter-17-demo-03
+hexagons <- st_read(dsn = "data/chap17/geospatial", layer = "hexagons")
+```
+
+```{r}
+#| label: chapter-17-demo-04
+eldercare <- st_read(dsn = "data/chap17/geospatial", layer = "ELDERCARE")
+```
+
+### 17.4.2 Updating CRS information
+
+The subzone layer says SVY21, but it has no EPSG code. I transform all three layers to EPSG:3414 so they share the same projected system. Distances are then in metres.
+
+```{r}
+#| label: chapter-17-demo-05
+mpsz <- st_transform(mpsz, 3414)
+eldercare <- st_transform(eldercare, 3414)
+hexagons <- st_transform(hexagons, 3414)
+```
+
+```{r}
+#| label: chapter-17-demo-06
+st_crs(mpsz)
+```
+
+The EPSG code is now 3414.
+
+### 17.4.3 Cleaning and updating attribute fields of the geospatial data
+
+I keep only the ID fields. Then I add `capacity` to each eldercare centre and `demand` to each hexagon.
+
+```{r}
+#| label: chapter-17-demo-07
+eldercare <- eldercare %>%
+  select(fid, ADDRESSPOS) %>%
+  mutate(capacity = 100)
+```
+
+```{r}
+#| label: chapter-17-demo-08
+hexagons <- hexagons %>%
+  select(fid) %>%
+  mutate(demand = 100)
+```
+
+Both values are a constant 100, as in the chapter. This means every centre has the same size and every hexagon has the same need. The differences in the results come from location and distance only. In real planning, I would use the elderly population and the real number of places.
+
+```{r}
+#| label: chapter-17-demo-09
+head(eldercare)
+head(hexagons)
+```
+
+## 17.5 Aspatial Data Handling and Wrangling
+
+### 17.5.1 Importing Distance Matrix
+
+The OD matrix is in a long format. Each row is one hexagon and centre pair.
+
+```{r}
+#| label: chapter-17-demo-10
+ODMatrix <- read_csv("data/chap17/aspatial/OD_Matrix.csv", skip = 0)
+```
+
+```{r}
+#| label: chapter-17-demo-11
+glimpse(ODMatrix)
+```
+
+There are 3,125 hexagons and 120 centres, so the table should have 375,000 rows.
+
+### 17.5.2 Tidying distance matrix
+
+The modelling function needs a wide matrix. Rows are origins (hexagons) and columns are destinations (eldercare centres). The chapter uses `spread()`; it still works, although `pivot_wider()` is the newer function.
+
+```{r}
+#| label: chapter-17-demo-12
+distmat <- ODMatrix %>%
+  select(origin_id, destination_id, total_cost) %>%
+  spread(destination_id, total_cost)%>%
+  select(c(-c('origin_id')))
+```
+
+The distance is in metres. I divide by 1,000 to get kilometres.
+
+```{r}
+#| label: chapter-17-demo-13
+distmat_km <- as.matrix(distmat/1000)
+```
+
+The model matches rows by position, not by ID. So I check that the matrix has one row per hexagon and one column per centre, and that the IDs are in the same order as the two layers.
+
+```{r}
+#| label: chapter-17-matrix-check
+tibble(check = c("rows = hexagons",
+                  "columns = eldercare centres",
+                  "row order matches hexagon fid",
+                  "column order matches eldercare fid"),
+       result = c(nrow(distmat_km) == nrow(hexagons),
+                  ncol(distmat_km) == nrow(eldercare),
+                  all(sort(unique(ODMatrix$origin_id)) == hexagons$fid),
+                  all(as.numeric(colnames(distmat_km)) == eldercare$fid)))
+dim(distmat_km)
+distmat_km[1:5, 1:5]
+```
+
+## 17.6 Modelling and Visualising Accessibility using Hansen Method
+
+### 17.6.1 Computing Hansen's accessibility
+
+Hansen's model adds up all centres, but closer centres get much more weight. The `power` value controls how fast the weight drops with distance. Hansen does not consider competition from other hexagons.
+
+```{r}
+#| label: chapter-17-demo-14
+acc_Hansen <- data.frame(ac(hexagons$demand,
+                            eldercare$capacity,
+                            distmat_km,
+                            #d0 = 50,
+                            power = 2,
+                            family = "Hansen"))
+```
+
+```{r}
+#| label: chapter-17-demo-15
+head(acc_Hansen)
+```
+
+The first rows are hexagons at the far western edge. They are far from every centre, so with `power = 2` their scores are almost zero.
+
+The default column name is long and messy, so I rename it.
+
+```{r}
+#| label: chapter-17-demo-16
+colnames(acc_Hansen) <- "accHansen"
+```
+
+```{r}
+#| label: chapter-17-demo-17
+head(acc_Hansen)
+```
+
+```{r}
+#| label: chapter-17-demo-18
+acc_Hansen <- as_tibble(acc_Hansen)
+```
+
+`bind_cols()` joins the scores back to the hexagons by row order. The output is still an sf data frame, so it can be mapped.
+
+```{r}
+#| label: chapter-17-demo-19
+hexagon_Hansen <- bind_cols(hexagons, acc_Hansen)
+hexagon_Hansen
+```
+
+The chapter then runs the same steps in one code chunk. Note that this version uses `power = 0.5`. It replaces the result above, so the map below uses 0.5, not 2. A smaller power means distance matters less, so far centres still add some value.
+
+```{r}
+#| label: chapter-17-demo-20
+acc_Hansen <- data.frame(ac(hexagons$demand,
+                            eldercare$capacity,
+                            distmat_km,
+                            #d0 = 50,
+                            power = 0.5,
+                            family = "Hansen"))
+
+colnames(acc_Hansen) <- "accHansen"
+acc_Hansen <- as_tibble(acc_Hansen)
+hexagon_Hansen <- bind_cols(hexagons, acc_Hansen)
+```
+
+```{r}
+#| label: chapter-17-demo-21
+summary(hexagon_Hansen$accHansen)
+```
+
+### 17.6.2 Visualising Hansen's accessibility
+
+#### 17.6.2.1 Extracting map extent
+
+`st_bbox()` gets the extent of the hexagon layer. I reuse it for all three maps, so they have the same frame.
+
+```{r}
+#| label: chapter-17-demo-22
+mapex <- st_bbox(hexagons)
+```
+
+The map uses 10 quantile classes. Each class has about the same number of hexagons. Darker blue means better access. The red dots are the eldercare centres.
+
+```{r}
+#| label: chapter-17-demo-23
+#| fig-height: 7
+tm_shape(hexagon_Hansen,
+         bbox = mapex) +
+  tm_polygons(fill = "accHansen",
+              fill.scale = tm_scale_intervals(
+                style = "quantile",
+                n = 10,
+                values = "brewer.blues")) +
+tm_shape(eldercare) +
+  tm_dots(size = 0.3,
+          fill = "red",
+          col = "black") +
+  tm_title("Accessibility to eldercare: Hansen method") +
+  tm_layout(frame = TRUE) +
+  tm_compass(type="8star", size = 2) +
+  tm_scalebar() +
+  tm_grid(alpha = 0.2)
+```
+
+### 17.6.3 Statistical graphic visualisation
+
+To compare regions, I add the URA planning region to each hexagon with a spatial join.
+
+```{r}
+#| label: chapter-17-demo-24
+hexagon_Hansen <- st_join(hexagon_Hansen, mpsz,
+                          join = st_intersects)
+```
+
+A hexagon on a subzone boundary touches more than one subzone. `st_intersects` keeps all matches, so some hexagons appear more than once. I keep the chapter method for the boxplots, but I check how many rows are added.
+
+```{r}
+#| label: chapter-17-join-check
+tibble(hexagons = nrow(hexagons),
+       rows_after_join = nrow(hexagon_Hansen),
+       unique_hexagons = n_distinct(hexagon_Hansen$fid))
+```
+
+The Hansen values are very skewed, so the chapter plots them on a log scale. The red dot is the mean of each region. I use `fun` because `fun.y` is deprecated in the current ggplot2.
+
+```{r}
+#| label: chapter-17-demo-25
+ggplot(data=hexagon_Hansen,
+       aes(y = log(accHansen),
+           x= REGION_N)) +
+  geom_boxplot() +
+  geom_point(stat="summary",
+             fun="mean",
+             colour ="red",
+             size=2)
+```
+
+## 17.7 Modelling and Visualising Accessibility using KD2SFCA Method
+
+### 17.7.1 Computing KD2SFCA's accessibility
+
+KD2SFCA is a two step floating catchment method. First, each centre's capacity is shared among the hexagons within its catchment. Then each hexagon adds up the shares of the centres it can reach. `d0 = 5` sets a 5 km catchment, and a kernel makes closer pairs count more. Unlike Hansen, it includes competition between hexagons.
+
+```{r}
+#| label: chapter-17-demo-26
+acc_KD2SFCA <- data.frame(ac(hexagons$demand,
+                            eldercare$capacity,
+                            distmat_km,
+                            d0 = 5,
+                            power = 2,
+                            family = "KD2SFCA"))
+
+colnames(acc_KD2SFCA) <- "accKD2SFCA"
+acc_KD2SFCA <- as_tibble(acc_KD2SFCA)
+hexagon_KD2SFCA <- bind_cols(hexagons, acc_KD2SFCA)
+```
+
+```{r}
+#| label: chapter-17-demo-27
+summary(hexagon_KD2SFCA$accKD2SFCA)
+```
+
+### 17.7.2 Visualising KD2SFCA's accessibility
+
+The same map design is used. `mapex` is reused for the `bbox` argument.
+
+```{r}
+#| label: chapter-17-demo-28
+#| fig-height: 7
+tm_shape(hexagon_KD2SFCA,
+         bbox = mapex) +
+  tm_polygons(fill = "accKD2SFCA",
+              fill.scale = tm_scale_intervals(
+                style = "quantile",
+                n = 10,
+                values = "brewer.blues")) +
+tm_shape(eldercare) +
+  tm_dots(size = 0.3,
+          fill = "red",
+          col = "black") +
+  tm_title("Accessibility to eldercare: KD2SFCA method") +
+  tm_layout(frame = TRUE) +
+  tm_compass(type="8star", size = 2) +
+  tm_scalebar() +
+  tm_grid(alpha = 0.2)
+```
+
+### 17.7.3 Statistical graphic visualisation
+
+```{r}
+#| label: chapter-17-demo-29
+hexagon_KD2SFCA <- st_join(hexagon_KD2SFCA, mpsz,
+                           join = st_intersects)
+```
+
+These values are not log transformed, as in the chapter.
+
+```{r}
+#| label: chapter-17-demo-30
+ggplot(data=hexagon_KD2SFCA,
+       aes(y = accKD2SFCA,
+           x= REGION_N)) +
+  geom_boxplot() +
+  geom_point(stat="summary",
+             fun="mean",
+             colour ="red",
+             size=2)
+```
+
+## 17.8 Modelling and Visualising Accessibility using Spatial Accessibility Measure (SAM) Method
+
+### 17.8.1 Computing SAM accessibility
+
+SAM also accounts for supply, demand and distance. It is designed to reduce the over estimation problem of floating catchment methods. I use the same `d0 = 5` and `power = 2` as the chapter.
+
+```{r}
+#| label: chapter-17-demo-31
+acc_SAM <- data.frame(ac(hexagons$demand,
+                         eldercare$capacity,
+                         distmat_km,
+                         d0 = 5,
+                         power = 2,
+                         family = "SAM"))
+
+colnames(acc_SAM) <- "accSAM"
+acc_SAM <- as_tibble(acc_SAM)
+hexagon_SAM <- bind_cols(hexagons, acc_SAM)
+```
+
+```{r}
+#| label: chapter-17-demo-32
+summary(hexagon_SAM$accSAM)
+```
+
+### 17.8.2 Visualising SAM's accessibility
+
+```{r}
+#| label: chapter-17-demo-33
+#| fig-height: 7
+tm_shape(hexagon_SAM,
+         bbox = mapex) +
+  tm_polygons(fill = "accSAM",
+              fill.scale = tm_scale_intervals(
+                style = "quantile",
+                n = 10,
+                values = "brewer.blues")) +
+tm_shape(eldercare) +
+  tm_dots(size = 0.3,
+          fill = "red",
+          col = "black") +
+  tm_title("Accessibility to eldercare: SAM method") +
+  tm_layout(frame = TRUE) +
+  tm_compass(type="8star", size = 2) +
+  tm_scalebar() +
+  tm_grid(alpha = 0.2)
+```
+
+### 17.8.3 Statistical graphic visualisation
+
+```{r}
+#| label: chapter-17-demo-34
+hexagon_SAM <- st_join(hexagon_SAM, mpsz,
+                       join = st_intersects)
+```
+
+```{r}
+#| label: chapter-17-demo-35
+ggplot(data=hexagon_SAM,
+       aes(y = accSAM,
+           x= REGION_N)) +
+  geom_boxplot() +
+  geom_point(stat="summary",
+             fun="mean",
+             colour ="red",
+             size=2)
+```
+
+One central hexagon has a SAM value of about 740, while most values are below 2. This outlier squashes all the boxes. I add a log scale version so the regional differences are easier to see. All SAM values are above zero, so the log scale works here.
+
+```{r}
+#| label: chapter-17-sam-log
+ggplot(data=hexagon_SAM,
+       aes(y = accSAM,
+           x= REGION_N)) +
+  geom_boxplot() +
+  geom_point(stat="summary",
+             fun="mean",
+             colour ="red",
+             size=2) +
+  scale_y_log10()
+```
+
+## My Comparison and Conclusion
+
+I put the three maps side by side. The colour classes are quantiles, so each map compares hexagons within one method. The values themselves are on different scales and should not be compared across maps.
+
+```{r}
+#| label: chapter-17-method-maps
+#| fig-width: 15
+#| fig-height: 5
+acc_map <- function(data, var, title) {
+  tm_shape(data, bbox = mapex) +
+    tm_polygons(fill = var,
+                fill.scale = tm_scale_intervals(
+                  style = "quantile",
+                  n = 10,
+                  values = "brewer.blues"),
+                fill.legend = tm_legend_hide(),
+                col_alpha = 0.2) +
+    tm_shape(eldercare) +
+    tm_dots(size = 0.15, fill = "red") +
+    tm_title(title)
+}
+
+tmap_arrange(
+  acc_map(bind_cols(hexagons, acc_Hansen), "accHansen", "Hansen (power = 0.5)"),
+  acc_map(bind_cols(hexagons, acc_KD2SFCA), "accKD2SFCA", "KD2SFCA (d0 = 5 km)"),
+  acc_map(bind_cols(hexagons, acc_SAM), "accSAM", "SAM (d0 = 5 km)"),
+  ncol = 3)
+```
