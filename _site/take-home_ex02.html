@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ziying Zhou">
-<meta name="dcterms.date" content="2026-10-13">
+<meta name="dcterms.date" content="2026-10-07">
 
 <title>Take home Exercise 2: Geospatial Analytics for Peace – ISSS626geo</title>
 <style>
@@ -213,6 +213,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="./take-home_ex02.html">
  <span class="dropdown-text">Technical Report 2</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="./take-home_ex02_slides.html">
+ <span class="dropdown-text">Executive Summary 2</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item">
@@ -287,7 +291,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#integrated-findings" id="toc-integrated-findings" class="nav-link" data-scroll-target="#integrated-findings">Integrated findings</a></li>
   <li><a href="#implications-for-peace-building" id="toc-implications-for-peace-building" class="nav-link" data-scroll-target="#implications-for-peace-building">Implications for peace-building</a></li>
   <li><a href="#limitations-and-assumptions" id="toc-limitations-and-assumptions" class="nav-link" data-scroll-target="#limitations-and-assumptions">Limitations and assumptions</a></li>
-  <li><a href="#reproducibility" id="toc-reproducibility" class="nav-link" data-scroll-target="#reproducibility">Reproducibility</a></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
@@ -316,7 +319,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 13, 2026</p>
+      <p class="date">October 7, 2026</p>
     </div>
   </div>
   
@@ -336,7 +339,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="executive-summary" class="level2">
 <h2 class="anchored" data-anchor-id="executive-summary">Executive summary</h2>
-<!-- EXEC-SUMMARY: written after the results are checked -->
+<p>This report studies political violence in Myanmar from January 2021 to September 2025, using ACLED event data and the MIMU township boundaries. After cleaning, 53,907 events of three types remain: battles, explosions or remote violence, and violence against civilians. ACLED reports 89,012 fatalities for these events.</p>
+<p>Violence rose quickly after the February 2021 coup, from 401 events in 2021 Q1 to 3,004 in 2021 Q4. It peaked at 4,026 events in 2023 Q4 and was still about 2,800 to 3,000 events a quarter in 2025. The type of violence also changed. Air and drone strikes rose from 88 events in 2021 to 2,977 in 2024.</p>
+<p>The violence is strongly clustered. Global Moran’s I is between 0.45 and 0.56 for all five variables (p &lt; 0.001). Local Moran’s I and Gi* agree on one main hot spot in the central dry zone, where Sagaing, Magway and Mandalay meet. These three regions hold 43% of the events and 52% of the reported fatalities. A smaller chain of hot spots runs along the Kayin and Tanintharyi borderlands. Cold spots cover eastern Shan, the Ayeyarwady delta and Yangon.</p>
+<p>Emerging hot spot analysis shows that most hot spots are not stable. 37 townships are oscillating hot spots and 49 are sporadic hot spots, but only Pale is a persistent hot spot. Seven townships, in northern Shan, eastern Bago, Kayin, Tanintharyi and Mogoke, are consecutive hot spots. They became hot only in the latest quarters, and their average count rose from 9 events a quarter in 2021 to 43 in 2025.</p>
+<p>A 25 km hexagon grid confirms the central hot spot, but only 52.6% of hexagons fall in the same broad class as their township. Large rural townships hide quiet areas, and Yangon’s many small townships hide an urban hot spot that faded after 2021.</p>
+<p>The results show where reported violence concentrates and how it moves. They do not measure risk per person, because there is no population at risk in the data and reporting coverage varies across the country.</p>
 </section>
 <section id="research-question-and-objectives" class="level2">
 <h2 class="anchored" data-anchor-id="research-question-and-objectives">Research question and objectives</h2>
@@ -753,7 +761,7 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </table>
 </div>
 </div>
-<!-- RESULT: acled-check and event types -->
+<p>The file has 87,109 records and no duplicated event IDs. All records have coordinates. 1,118 records have no <code>admin3</code> township name, and 6 are labelled as Indian Ocean rather than Myanmar. These records are not removed here, because the township is taken from the coordinates later. Political violence makes up 54,004 of the records. Protests, riots and strategic developments are the rest.</p>
 </section>
 <section id="select-armed-conflict-events" class="level3">
 <h3 class="anchored" data-anchor-id="select-armed-conflict-events">Select armed conflict events</h3>
@@ -861,7 +869,7 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </table>
 </div>
 </div>
-<!-- RESULT: selection numbers -->
+<p>Only 94 political violence events (0.2%) have precision code 3, so removing them has very little effect on the totals. 53,910 events remain.</p>
 </section>
 <section id="point-layer-and-township-join" class="level3">
 <h3 class="anchored" data-anchor-id="point-layer-and-township-join">Point layer and township join</h3>
@@ -1038,7 +1046,8 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </table>
 </div>
 </div>
-<!-- RESULT: join and name agreement -->
+<p>The join works well. 53,899 events fall inside a township and 8 more are within 5 km of the coast. Only 3 events, all at sea in the North Indian Ocean, cannot be matched. The final point layer has 53,907 events.</p>
+<p>The ACLED township names agree with the MIMU names for almost every event, close to 100% for both precision codes. The few differences are spelling, such as Pangsang and Pangsang (Panghkam), or points close to a township border. This gives confidence that the point-in-polygon join and the ACLED coding describe the same places.</p>
 </section>
 <section id="township-by-quarter-table-and-derived-variables" class="level3">
 <h3 class="anchored" data-anchor-id="township-by-quarter-table-and-derived-variables">Township by quarter table and derived variables</h3>
@@ -1429,7 +1438,9 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </table>
 </div>
 </div>
-<!-- RESULT: national trend (max 200 words) -->
+<p>Reported political violence rose quickly after the coup on 1 February 2021. The total grew from 401 events in 2021 Q1 to 3,004 in 2021 Q4. It then stayed close to 3,000 events a quarter and reached its highest level, 4,026 events, in 2023 Q4. The 2025 quarters are a little lower, at about 2,800 to 3,000 events, but still far above early 2021.</p>
+<p>The mix of violence changed. From 2023 Q4, explosions and remote violence were higher than battles in every quarter. The sub-event table shows why. Air and drone strikes rose from 88 events in 2021 to 2,977 in 2024, and reached 2,501 in only the first three quarters of 2025. Shelling also increased until 2024. In contrast, remote explosives and IEDs fell from 2,525 events in 2022 to 400 in 2025. Violence against civilians peaked in 2021 Q4 at about 780 events and then fell gradually to about 400 to 500 a quarter by 2024, although abductions kept rising.</p>
+<p>Together, these changes suggest a shift from bombings and attacks in towns in 2021 to air power and artillery in a wider armed conflict. The counts show reported events, not all events.</p>
 </section>
 <section id="state-and-region-by-quarter" class="level3">
 <h3 class="anchored" data-anchor-id="state-and-region-by-quarter">State and region by quarter</h3>
@@ -1468,7 +1479,9 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </div>
 </div>
 </div>
-<!-- RESULT: state heatmap (max 200 words) -->
+<p>The heatmap shows that the main front moved over time. Sagaing has the most events in almost every quarter. It passed 1,000 events in 2022 Q3 and stayed above 800 until 2023 Q4, then fell to about 400 to 550 a quarter from 2024 Q2. Magway and Mandalay stayed high from late 2021, with about 170 to 450 events a quarter.</p>
+<p>Other areas flared at specific times. Yangon had more than 240 events a quarter from 2021 Q2 to 2022 Q1, when urban resistance was strong, but fewer than 100 from 2023. Northern Shan jumped to 878 events in 2023 Q4, which matches the start of the Three Brotherhood Alliance offensive in late October 2023. Rakhine was almost quiet in the first three quarters of 2023 and then rose to 513 events in 2024 Q1, after fighting with the Arakan Army resumed. Bago (East) rose from under 50 events a quarter in 2021 to about 300 in late 2023. Bago (West) climbed steadily to 211 in 2025 Q1. Shan (East) stayed close to zero.</p>
+<p>A single national map hides these fast changes. New fronts can open within one quarter.</p>
 </section>
 <section id="where-the-events-occurred" class="level3">
 <h3 class="anchored" data-anchor-id="where-the-events-occurred">Where the events occurred</h3>
@@ -1495,17 +1508,20 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </div>
 </div>
 </div>
-<!-- RESULT: point maps (max 200 words) -->
+<p>The point maps show the locations behind the counts. Battles form a broad band across the central dry zone in Sagaing, Magway and Mandalay. They also follow the eastern hills from Kayah and Kayin down to Tanintharyi, and appear along the Rakhine coast and in Kachin.</p>
+<p>Explosions and remote violence cover much of the same area. They are densest in the central dry zone, along the Bago and Kayin borderlands, and on the Rakhine coast. Many of these events are air strikes and shelling, which can reach places where there is no ground battle.</p>
+<p>Violence against civilians is most concentrated in the central dry zone. Smaller groups appear in Bago, around Yangon, and along the Tanintharyi coast.</p>
+<p>All three maps are almost empty in eastern Shan and much of the Ayeyarwady delta. Points can overlap and hide each other, so the township counts below give a clearer view of intensity.</p>
 </section>
 <section id="township-totals" class="level3">
 <h3 class="anchored" data-anchor-id="township-totals">Township totals</h3>
-<p>The first map shows the number of events. The second divides by township area, because large townships can collect more events simply by covering more land. The third shows reported fatalities. Jenks classes are used because the counts are very skewed.</p>
+<p>The first map shows the number of events. The second divides by township area, because large townships can collect more events simply by covering more land. The third shows reported fatalities. Jenks classes are used for the counts because they are very skewed. The density map uses quantile classes, because a few tiny urban townships have extreme densities that would otherwise put almost every township in the first class.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>total_map <span class="ot">&lt;-</span> <span class="cf">function</span>(var, title, palette) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>total_map <span class="ot">&lt;-</span> <span class="cf">function</span>(var, title, palette, <span class="at">style =</span> <span class="st">"jenks"</span>) {</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_shape</span>(mmr_conflict) <span class="sc">+</span></span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_polygons</span>(</span>
 <span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">fill =</span> var,</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(<span class="at">style =</span> <span class="st">"jenks"</span>, <span class="at">n =</span> <span class="dv">6</span>, <span class="at">values =</span> palette),</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">fill.scale =</span> <span class="fu">tm_scale_intervals</span>(<span class="at">style =</span> style, <span class="at">n =</span> <span class="dv">6</span>, <span class="at">values =</span> palette),</span>
 <span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> title),</span>
 <span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">col =</span> <span class="st">"grey80"</span>,</span>
 <span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">lwd =</span> <span class="fl">0.15</span></span>
@@ -1517,7 +1533,7 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 <span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(</span>
 <span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">total_map</span>(<span class="st">"events"</span>, <span class="st">"Events, 2021 to 2025 Q3"</span>, <span class="st">"brewer.or_rd"</span>),</span>
-<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">total_map</span>(<span class="st">"events_per_1000sqkm"</span>, <span class="st">"Events per 1,000 sq km"</span>, <span class="st">"brewer.pu_rd"</span>),</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">total_map</span>(<span class="st">"events_per_1000sqkm"</span>, <span class="st">"Events per 1,000 sq km"</span>, <span class="st">"brewer.pu_rd"</span>, <span class="at">style =</span> <span class="st">"quantile"</span>),</span>
 <span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">total_map</span>(<span class="st">"fatalities"</span>, <span class="st">"Reported fatalities"</span>, <span class="st">"brewer.reds"</span>),</span>
 <span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">3</span></span>
 <span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1698,7 +1714,10 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </table>
 </div>
 </div>
-<!-- RESULT: township totals (max 200 words) -->
+<p>Monywa in Sagaing has the most events (1,039). It is followed by Kawkareik in Kayin (946), Myaing in Magway (934), Kale in Sagaing (886) and Hpakant in Kachin (854). Kale has the most reported fatalities (1,877). The count map shows a dark core in the central dry zone and a second chain of high counts along the Kayin and Tanintharyi borderlands. Northern Kachin, eastern Shan and the delta are light.</p>
+<p>The density map tells a different story. Small urban townships in Yangon and Mandalay rise to the top because their areas are tiny. Kyauktada in central Yangon has only 23 events, but it covers less than 1 sq km, so it has the highest density. Large rural townships such as Hpakant, about 5,800 sq km, rank lower.</p>
+<p>The fatality map is close to the count map. Across townships, the Spearman correlation between battles and fatalities is 0.94. The central dry zone and Kayin have the most deaths.</p>
+<p>Counts and density answer different questions. This is one reason why the value added section later repeats the analysis on equal area hexagons.</p>
 </section>
 <section id="event-types-by-township" class="level3">
 <h3 class="anchored" data-anchor-id="event-types-by-township">Event types by township</h3>
@@ -1768,7 +1787,9 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </table>
 </div>
 </div>
-<!-- RESULT: event type maps (max 200 words) -->
+<p>The three event types share the same broad geography. Their Spearman correlations across townships range from 0.72 to 0.82. Battles are spread most widely, with high counts in Sagaing, northern Shan, Kayin and Tanintharyi. Nawnghkio in northern Shan (447 battles) and Kawkareik in Kayin (441) have the most battles among the 15 busiest townships.</p>
+<p>Explosions and remote violence are most concentrated in the central dry zone and eastern Bago. Kyaukkyi in Bago (East) has 601 such events, but only 141 battles. Violence against civilians is mostly found in Sagaing and Magway, and Monywa has 213 of these events.</p>
+<p>Some places are shaped mainly by one type of violence. Kyaukkyi is shaped by remote violence, while Nawnghkio and Myawaddy are shaped by battles. This matters for the response. Shelling and air strikes call for early warning and shelter, while ground fighting causes displacement along front lines.</p>
 </section>
 <section id="change-by-year" class="level3">
 <h3 class="anchored" data-anchor-id="change-by-year">Change by year</h3>
@@ -1869,7 +1890,9 @@ $ timestamp          &lt;dbl&gt; 1754410549, 1753971383, 1753971383, 1753971383,
 </table>
 </div>
 </div>
-<!-- RESULT: yearly maps (max 200 words) -->
+<p>The yearly maps use events per quarter, so 2025 can be compared with the full years. In 2021 the violence was spread thin: 297 townships had at least one event, but only 60 averaged ten or more events a quarter. By 2024 this number had risen to 104 townships, the highest in the study period. It fell to 88 in 2025.</p>
+<p>The central dry zone is dark in every year from 2022. Other areas change. Kayah and southern Shan are active from 2021 to 2023. Rakhine turns dark in 2024, and northern Shan becomes more active from late 2023. In 2025, parts of Kachin, northern Shan and Tanintharyi have some of the darkest townships, while parts of Sagaing become lighter.</p>
+<p>The conflict therefore did not simply grow in one place. It spread to more townships, and the most intense areas moved between regions.</p>
 </section>
 <section id="interactive-township-explorer" class="level3">
 <h3 class="anchored" data-anchor-id="interactive-township-explorer">Interactive township explorer</h3>
@@ -2025,7 +2048,7 @@ Link number distribution:
 <span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
 <span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">variable =</span> lmsa_vars[[v]],</span>
 <span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">moran_i =</span> <span class="fu">round</span>(<span class="fu">unname</span>(gm<span class="sc">$</span>statistic), <span class="dv">3</span>),</span>
-<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_value =</span> gm<span class="sc">$</span>p.value</span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_value =</span> <span class="fu">format.pval</span>(gm<span class="sc">$</span>p.value, <span class="at">eps =</span> <span class="fl">0.001</span>)</span>
 <span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>})</span>
 <span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a></span>
@@ -2036,40 +2059,40 @@ Link number distribution:
 <tr class="header">
 <th style="text-align: left;">variable</th>
 <th style="text-align: right;">moran_i</th>
-<th style="text-align: right;">p_value</th>
+<th style="text-align: left;">p_value</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">All political violence</td>
 <td style="text-align: right;">0.491</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">&lt; 0.001</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Battles</td>
 <td style="text-align: right;">0.475</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">&lt; 0.001</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Explosions/remote violence</td>
 <td style="text-align: right;">0.454</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">&lt; 0.001</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Violence against civilians</td>
 <td style="text-align: right;">0.475</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">&lt; 0.001</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Reported fatalities</td>
 <td style="text-align: right;">0.559</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">&lt; 0.001</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<!-- RESULT: global Moran -->
+<p>All five variables have strong positive spatial autocorrelation. Moran’s I ranges from 0.454 for explosions and remote violence to 0.559 for reported fatalities. Every p value is below 0.001, so the null hypothesis of spatial randomness is rejected. Townships with many events tend to border other townships with many events, which justifies looking for local clusters. Fatalities have the strongest clustering, which suggests that the deadliest fighting is even more concentrated than the number of events.</p>
 </section>
 <section id="local-measures-of-spatial-association" class="level2">
 <h2 class="anchored" data-anchor-id="local-measures-of-spatial-association">Local measures of spatial association</h2>
@@ -2235,7 +2258,9 @@ Link number distribution:
 </table>
 </div>
 </div>
-<!-- RESULT: LISA (max 200 words) -->
+<p>Local Moran’s I finds 36 High-High townships for all political violence. Seventeen are in Sagaing, seven in Mandalay and five in Magway. Together they form one large block in the central dry zone around Monywa, Myaing, Shwebo and Pakokku. A second, smaller High-High chain runs along the Thai border in Kayin and Tanintharyi, including Myawaddy, Kyainseikgyi, Yebyu, Dawei and Thayetchaung.</p>
+<p>There are 48 Low-Low townships. Most are in the Ayeyarwady delta (13), eastern Shan (10) and Yangon (9). Only two townships are spatial outliers, both Low-High: Hlaingbwe in Kayin and Tonzang in Chin. They have fewer events than their busy neighbours. Fatalities give the only High-Low outlier, Lashio in northern Shan, with 504 reported deaths while its neighbours had far fewer.</p>
+<p>The pattern is similar for all five variables, which shows that the central dry zone cluster is robust. Explosions and remote violence add a High-High band through eastern Bago and Kayin.</p>
 </section>
 <section id="getis-ord-gi-hot-spots-and-cold-spots" class="level3">
 <h3 class="anchored" data-anchor-id="getis-ord-gi-hot-spots-and-cold-spots">Getis-Ord Gi*: hot spots and cold spots</h3>
@@ -2406,7 +2431,9 @@ Link number distribution:
 </table>
 </div>
 </div>
-<!-- RESULT: Gi* (max 200 words) -->
+<p>Gi* gives a very similar picture. For all political violence, 34 townships are hot spots and 18 of them are significant at p &lt; 0.01. Seventeen hot spots are in Sagaing, six in Mandalay and five in Magway. The strongest Gi* values are in Salingyi, Yesagyo, Myaing and Singu. The other hot spots are in Kayin, Tanintharyi and Bago (East).</p>
+<p>There are 51 cold spots, mostly in the Ayeyarwady delta (12), Yangon (10) and eastern Shan (10), plus parts of southern and northern Shan. Fatalities have the largest set of hot spots (41), with 21 in Sagaing and four in Chin. Battles add hot spots in Tanintharyi and along the Kayin border. Violence against civilians has hot spots almost only in the central dry zone and Tanintharyi.</p>
+<p>A cold spot does not mean that an area is safe. It means that the township and its neighbours had fewer reported events than the national average. Parts of eastern Shan are run by armed groups with long-standing ceasefires, and reporting from such areas may be thin.</p>
 </section>
 <section id="agreement-between-the-two-local-measures" class="level3">
 <h3 class="anchored" data-anchor-id="agreement-between-the-two-local-measures">Agreement between the two local measures</h3>
@@ -2482,7 +2509,7 @@ Link number distribution:
 </table>
 </div>
 </div>
-<!-- RESULT: agreement -->
+<p>The two measures agree closely. Of the 36 High-High townships, 33 are Gi* hot spots and 3 are not significant. Of the 48 Low-Low townships, 45 are cold spots. Gi* adds six cold spots that Local Moran’s I does not flag. The two Low-High outliers split: Hlaingbwe is a Gi* hot spot, because Gi* includes its busy neighbours, while Tonzang is not significant. This shows the difference between the two methods. Local Moran’s I compares a township with its neighbours, while Gi* measures the concentration of the whole neighbourhood.</p>
 </section>
 </section>
 <section id="emerging-hot-spot-analysis" class="level2">
@@ -2656,7 +2683,7 @@ Link number distribution:
 <span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplotly</span>(p_top, <span class="at">tooltip =</span> <span class="st">"text"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="plotly html-widget html-fill-item" id="htmlwidget-8f836166d559454ecd73" style="width:100%;height:464px;"></div>
-<script type="application/json" data-for="htmlwidget-8f836166d559454ecd73">{"x":{"data":[{"x":[18628,18718,18809,18901,18993,19083,19174,19266,19358,19448,19539,19631,19723,19814,19905,19997,20089,20179,20270],"y":[-0.41150729955813847,0.014618828404446019,2.0276685169243063,5.5159746234682494,4.5708004947312446,6.4425442608675532,5.9001419046373327,5.9161477436070626,5.1702010067159678,3.72316269165503,4.6953101871053731,2.4314810990348086,3.2894739555744716,3.3513132757763651,2.2309139211455093,2.4783785252489046,2.9281422614108434,0.77689173808041057,1.4564087950959614],"text":"","type":"scatter","mode":"lines","line":{"width":3.4015748031496069,"color":"rgba(178,24,43,1)","dash":"solid"},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18628,18718,18809,18901,18993,19083,19174,19266,19358,19448,19539,19631,19723,19814,19905,19997,20089,20179,20270],"y":[-0.41150729955813847,0.014618828404446019,2.0276685169243063,5.5159746234682494,4.5708004947312446,6.4425442608675532,5.9001419046373327,5.9161477436070626,5.1702010067159678,3.72316269165503,4.6953101871053731,2.4314810990348086,3.2894739555744716,3.3513132757763651,2.2309139211455093,2.4783785252489046,2.9281422614108434,0.77689173808041057,1.4564087950959614],"text":["2021 Q1<br>Events: 4<br>Gi*: -0.41","2021 Q2<br>Events: 16<br>Gi*: 0.01","2021 Q3<br>Events: 37<br>Gi*: 2.03","2021 Q4<br>Events: 83<br>Gi*: 5.52","2022 Q1<br>Events: 57<br>Gi*: 4.57","2022 Q2<br>Events: 60<br>Gi*: 6.44","2022 Q3<br>Events: 71<br>Gi*: 5.9","2022 Q4<br>Events: 106<br>Gi*: 5.92","2023 Q1<br>Events: 61<br>Gi*: 5.17","2023 Q2<br>Events: 47<br>Gi*: 3.72","2023 Q3<br>Events: 57<br>Gi*: 4.7","2023 Q4<br>Events: 70<br>Gi*: 2.43","2024 Q1<br>Events: 91<br>Gi*: 3.29","2024 Q2<br>Events: 80<br>Gi*: 3.35","2024 Q3<br>Events: 44<br>Gi*: 2.23","2024 Q4<br>Events: 48<br>Gi*: 2.48","2025 Q1<br>Events: 56<br>Gi*: 2.93","2025 Q2<br>Events: 17<br>Gi*: 0.78","2025 Q3<br>Events: 34<br>Gi*: 1.46"],"type":"scatter","mode":"markers","marker":{"autocolorscale":false,"color":"rgba(178,24,43,1)","opacity":1,"size":6.8031496062992138,"symbol":"circle","line":{"width":1.8897637795275593,"color":"rgba(178,24,43,1)"}},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":40.840182648401829,"r":7.3059360730593621,"b":22.648401826484022,"l":31.415525114155255},"plot_bgcolor":"rgba(255,255,255,1)","paper_bgcolor":"rgba(255,255,255,1)","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Gi* by quarter: Monywa township","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[18545.900000000001,20352.099999999999],"tickmode":"array","ticktext":["2021","2022","2023","2024","2025"],"tickvals":[18628,18993,19358,19723,20089],"categoryorder":"array","categoryarray":["2021","2022","2023","2024","2025"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-0.75420987757942304,6.7852468388888374],"tickmode":"array","ticktext":["0","2","4","6"],"tickvals":[0,1.9999999999999998,4,6],"categoryorder":"array","categoryarray":["0","2","4","6"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"x","title":{"text":"Gi*","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":"rgba(255,255,255,1)","line":{"color":"rgba(179,179,179,1)","width":0.66417600664176002,"linetype":"solid"},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":"rgba(255,255,255,1)","bordercolor":"transparent","borderwidth":1.8897637795275593,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"18e165c5b560":{"x":{},"y":{},"type":"scatter"},"18e11706e5d3":{"x":{},"y":{},"text":{}}},"cur_data":"18e165c5b560","visdat":{"18e165c5b560":["function (y) ","x"],"18e11706e5d3":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<script type="application/json" data-for="htmlwidget-8f836166d559454ecd73">{"x":{"data":[{"x":[18628,18718,18809,18901,18993,19083,19174,19266,19358,19448,19539,19631,19723,19814,19905,19997,20089,20179,20270],"y":[-0.41150729955813847,0.014618828404446019,2.0276685169243063,5.5159746234682494,4.5708004947312446,6.4425442608675532,5.9001419046373327,5.9161477436070626,5.1702010067159678,3.72316269165503,4.6953101871053731,2.4314810990348086,3.2894739555744716,3.3513132757763651,2.2309139211455093,2.4783785252489046,2.9281422614108434,0.77689173808041057,1.4564087950959614],"text":"","type":"scatter","mode":"lines","line":{"width":3.4015748031496069,"color":"rgba(178,24,43,1)","dash":"solid"},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18628,18718,18809,18901,18993,19083,19174,19266,19358,19448,19539,19631,19723,19814,19905,19997,20089,20179,20270],"y":[-0.41150729955813847,0.014618828404446019,2.0276685169243063,5.5159746234682494,4.5708004947312446,6.4425442608675532,5.9001419046373327,5.9161477436070626,5.1702010067159678,3.72316269165503,4.6953101871053731,2.4314810990348086,3.2894739555744716,3.3513132757763651,2.2309139211455093,2.4783785252489046,2.9281422614108434,0.77689173808041057,1.4564087950959614],"text":["2021 Q1<br>Events: 4<br>Gi*: -0.41","2021 Q2<br>Events: 16<br>Gi*: 0.01","2021 Q3<br>Events: 37<br>Gi*: 2.03","2021 Q4<br>Events: 83<br>Gi*: 5.52","2022 Q1<br>Events: 57<br>Gi*: 4.57","2022 Q2<br>Events: 60<br>Gi*: 6.44","2022 Q3<br>Events: 71<br>Gi*: 5.9","2022 Q4<br>Events: 106<br>Gi*: 5.92","2023 Q1<br>Events: 61<br>Gi*: 5.17","2023 Q2<br>Events: 47<br>Gi*: 3.72","2023 Q3<br>Events: 57<br>Gi*: 4.7","2023 Q4<br>Events: 70<br>Gi*: 2.43","2024 Q1<br>Events: 91<br>Gi*: 3.29","2024 Q2<br>Events: 80<br>Gi*: 3.35","2024 Q3<br>Events: 44<br>Gi*: 2.23","2024 Q4<br>Events: 48<br>Gi*: 2.48","2025 Q1<br>Events: 56<br>Gi*: 2.93","2025 Q2<br>Events: 17<br>Gi*: 0.78","2025 Q3<br>Events: 34<br>Gi*: 1.46"],"type":"scatter","mode":"markers","marker":{"autocolorscale":false,"color":"rgba(178,24,43,1)","opacity":1,"size":6.8031496062992138,"symbol":"circle","line":{"width":1.8897637795275593,"color":"rgba(178,24,43,1)"}},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":40.840182648401829,"r":7.3059360730593621,"b":22.648401826484022,"l":31.415525114155255},"plot_bgcolor":"rgba(255,255,255,1)","paper_bgcolor":"rgba(255,255,255,1)","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Gi* by quarter: Monywa township","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[18545.900000000001,20352.099999999999],"tickmode":"array","ticktext":["2021","2022","2023","2024","2025"],"tickvals":[18628,18993,19358,19723,20089],"categoryorder":"array","categoryarray":["2021","2022","2023","2024","2025"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-0.75420987757942304,6.7852468388888374],"tickmode":"array","ticktext":["0","2","4","6"],"tickvals":[0,1.9999999999999998,4,6],"categoryorder":"array","categoryarray":["0","2","4","6"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"x","title":{"text":"Gi*","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":"rgba(255,255,255,1)","line":{"color":"rgba(179,179,179,1)","width":0.66417600664176002,"linetype":"solid"},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":"rgba(255,255,255,1)","bordercolor":"transparent","borderwidth":1.8897637795275593,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"24364e3779ce":{"x":{},"y":{},"type":"scatter"},"24361c1deb80":{"x":{},"y":{},"text":{}}},"cur_data":"24364e3779ce","visdat":{"24364e3779ce":["function (y) ","x"],"24361c1deb80":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 <div class="cell">
@@ -2826,7 +2853,8 @@ Link number distribution:
 </table>
 </div>
 </div>
-<!-- RESULT: Mann-Kendall -->
+<p>Gi* changes a lot over time. The number of significant hot spots rose from 11 in 2021 Q1 to 33 in 2022 Q2 and fell to between 10 and 14 in 2025. Cold spots grew from 4 in 2021 Q1 to 57 in 2023 Q4. The example township, Monywa, has the most events, but its Gi* series has a slight downward trend that is not significant (tau = -0.20, p = 0.23).</p>
+<p>Across all townships, 60 have a significant upward trend, 78 a significant downward trend and 192 no significant trend. The strongest upward trends are in Bago (West), including Minhla, Okpho, Paungde and Gyobingauk, and in Chauk, Natogyi and Pyinoolwin. The strongest downward trends are in urban Mandalay, such as Mahaaungmyay and Chanmyathazi. Violence moved away from the large cities and towards new rural fronts.</p>
 </section>
 <section id="ehsa-classification" class="level3">
 <h3 class="anchored" data-anchor-id="ehsa-classification">EHSA classification</h3>
@@ -3015,11 +3043,11 @@ Link number distribution:
 <span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ehsa_class) <span class="sc">%&gt;%</span></span>
 <span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
 <span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">townships =</span> <span class="fu">n</span>(),</span>
-<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">events =</span> <span class="fu">sum</span>(events),</span>
-<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">share_of_events_pct =</span> <span class="fu">round</span>(<span class="fu">sum</span>(events) <span class="sc">/</span> <span class="fu">sum</span>(mmr_conflict<span class="sc">$</span>events) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>),</span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">example_townships =</span> <span class="fu">paste</span>(<span class="fu">head</span>(TS[<span class="fu">order</span>(<span class="sc">-</span>events)], <span class="dv">5</span>), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">main_states =</span> <span class="fu">paste</span>(<span class="fu">head</span>(<span class="fu">names</span>(<span class="fu">sort</span>(<span class="fu">table</span>(ST), <span class="at">decreasing =</span> <span class="cn">TRUE</span>)), <span class="dv">3</span>), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
 <span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_tau =</span> <span class="fu">round</span>(<span class="fu">median</span>(tau, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
-<span id="cb65-9"><a href="#cb65-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">main_states =</span> <span class="fu">paste</span>(<span class="fu">head</span>(<span class="fu">names</span>(<span class="fu">sort</span>(<span class="fu">table</span>(ST), <span class="at">decreasing =</span> <span class="cn">TRUE</span>)), <span class="dv">3</span>), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
-<span id="cb65-10"><a href="#cb65-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">example_townships =</span> <span class="fu">paste</span>(<span class="fu">head</span>(TS[<span class="fu">order</span>(<span class="sc">-</span>events)], <span class="dv">5</span>), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb65-9"><a href="#cb65-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_events =</span> <span class="fu">sum</span>(events),</span>
+<span id="cb65-10"><a href="#cb65-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">share_of_events_pct =</span> <span class="fu">round</span>(total_events <span class="sc">/</span> <span class="fu">sum</span>(mmr_conflict<span class="sc">$</span>events) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>),</span>
 <span id="cb65-11"><a href="#cb65-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
 <span id="cb65-12"><a href="#cb65-12" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb65-13"><a href="#cb65-13" aria-hidden="true" tabindex="-1"></a></span>
@@ -3027,133 +3055,133 @@ Link number distribution:
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
-<col style="width: 17%">
-<col style="width: 7%">
+<col style="width: 12%">
 <col style="width: 5%">
-<col style="width: 15%">
-<col style="width: 8%">
-<col style="width: 30%">
-<col style="width: 14%">
+<col style="width: 33%">
+<col style="width: 22%">
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 11%">
 </colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">ehsa_class</th>
 <th style="text-align: right;">townships</th>
-<th style="text-align: right;">events</th>
-<th style="text-align: right;">share_of_events_pct</th>
-<th style="text-align: right;">median_tau</th>
-<th style="text-align: left;">main_states</th>
 <th style="text-align: left;">example_townships</th>
+<th style="text-align: left;">main_states</th>
+<th style="text-align: right;">median_tau</th>
+<th style="text-align: right;">total_events</th>
+<th style="text-align: right;">share_of_events_pct</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">persistent hotspot</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: left;">Pale</td>
+<td style="text-align: left;">Sagaing</td>
+<td style="text-align: right;">-0.24</td>
 <td style="text-align: right;">537</td>
 <td style="text-align: right;">1.0</td>
-<td style="text-align: right;">-0.24</td>
-<td style="text-align: left;">Sagaing</td>
-<td style="text-align: left;">Pale</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">consecutive hotspot</td>
 <td style="text-align: right;">7</td>
+<td style="text-align: left;">Nawnghkio, Kyaukkyi, Kyaukme, Kyainseikgyi, Yebyu</td>
+<td style="text-align: left;">Bago (East), Shan (North), Kayin</td>
+<td style="text-align: right;">0.50</td>
 <td style="text-align: right;">3265</td>
 <td style="text-align: right;">6.1</td>
-<td style="text-align: right;">0.50</td>
-<td style="text-align: left;">Bago (East), Shan (North), Kayin</td>
-<td style="text-align: left;">Kyainseikgyi</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">new hotspot</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: left;">Hkamti</td>
+<td style="text-align: left;">Sagaing</td>
+<td style="text-align: right;">-0.12</td>
 <td style="text-align: right;">17</td>
 <td style="text-align: right;">0.0</td>
-<td style="text-align: right;">-0.12</td>
-<td style="text-align: left;">Sagaing</td>
-<td style="text-align: left;">Hkamti</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">sporadic hotspot</td>
 <td style="text-align: right;">49</td>
+<td style="text-align: left;">Kawkareik, Kale, Hpakant, Myawaddy, Muse</td>
+<td style="text-align: left;">Kachin, Sagaing, Shan (North)</td>
+<td style="text-align: right;">-0.15</td>
 <td style="text-align: right;">14996</td>
 <td style="text-align: right;">27.8</td>
-<td style="text-align: right;">-0.15</td>
-<td style="text-align: left;">Kachin, Sagaing, Shan (North)</td>
-<td style="text-align: left;">Myitkyina</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">oscilating hotspot</td>
 <td style="text-align: right;">37</td>
+<td style="text-align: left;">Myaing, Madaya, Yesagyo, Pakokku, Sagaing</td>
+<td style="text-align: left;">Mandalay, Sagaing, Magway</td>
+<td style="text-align: right;">0.46</td>
 <td style="text-align: right;">13244</td>
 <td style="text-align: right;">24.6</td>
-<td style="text-align: right;">0.46</td>
-<td style="text-align: left;">Mandalay, Sagaing, Magway</td>
-<td style="text-align: left;">Tanai</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">no pattern detected</td>
 <td style="text-align: right;">72</td>
+<td style="text-align: left;">Monywa, Shwebo, Tanintharyi, Kanbalu, Pekon</td>
+<td style="text-align: left;">Sagaing, Rakhine, Mandalay</td>
+<td style="text-align: right;">0.11</td>
 <td style="text-align: right;">13772</td>
 <td style="text-align: right;">25.5</td>
-<td style="text-align: right;">0.11</td>
-<td style="text-align: left;">Sagaing, Rakhine, Mandalay</td>
-<td style="text-align: left;">Injangyang</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">oscilating coldspot</td>
 <td style="text-align: right;">11</td>
+<td style="text-align: left;">Kutkai, Lashio, Paletwa, Laukkaing, Mayangone</td>
+<td style="text-align: left;">Shan (North), Yangon, Chin</td>
+<td style="text-align: right;">-0.52</td>
 <td style="text-align: right;">1563</td>
 <td style="text-align: right;">2.9</td>
-<td style="text-align: right;">-0.52</td>
-<td style="text-align: left;">Shan (North), Yangon, Chin</td>
-<td style="text-align: left;">Paletwa</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">sporadic coldspot</td>
 <td style="text-align: right;">109</td>
+<td style="text-align: left;">Yedashe, Hsihseng, Taungoo, Paungde, Hlaingtharya (East)</td>
+<td style="text-align: left;">Yangon, Ayeyarwady, Magway</td>
+<td style="text-align: right;">0.01</td>
 <td style="text-align: right;">5844</td>
 <td style="text-align: right;">10.8</td>
-<td style="text-align: right;">0.01</td>
-<td style="text-align: left;">Yangon, Ayeyarwady, Magway</td>
-<td style="text-align: left;">Chipwi</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">new coldspot</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: left;">Chanmyathazi</td>
+<td style="text-align: left;">Mandalay</td>
+<td style="text-align: right;">-0.64</td>
 <td style="text-align: right;">160</td>
 <td style="text-align: right;">0.3</td>
-<td style="text-align: right;">-0.64</td>
-<td style="text-align: left;">Mandalay</td>
-<td style="text-align: left;">Chanmyathazi</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">consecutive coldspot</td>
 <td style="text-align: right;">10</td>
+<td style="text-align: left;">Tamwe, Sanchaung, Kyeemyindaing, Dawbon, Ahlone</td>
+<td style="text-align: left;">Yangon, Ayeyarwady</td>
+<td style="text-align: right;">-0.51</td>
 <td style="text-align: right;">294</td>
 <td style="text-align: right;">0.5</td>
-<td style="text-align: right;">-0.51</td>
-<td style="text-align: left;">Yangon, Ayeyarwady</td>
-<td style="text-align: left;">Dawbon</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">intensifying coldspot</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: left;">Lanmadaw</td>
+<td style="text-align: left;">Yangon</td>
+<td style="text-align: right;">-0.36</td>
 <td style="text-align: right;">17</td>
 <td style="text-align: right;">0.0</td>
-<td style="text-align: right;">-0.36</td>
-<td style="text-align: left;">Yangon</td>
-<td style="text-align: left;">Lanmadaw</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">persistent coldspot</td>
 <td style="text-align: right;">31</td>
+<td style="text-align: left;">Mawlamyinegyun, Taikkyi, Tachileik, Myaungmya, Nansang</td>
+<td style="text-align: left;">Shan (East), Ayeyarwady, Shan (South)</td>
+<td style="text-align: right;">0.13</td>
 <td style="text-align: right;">198</td>
 <td style="text-align: right;">0.4</td>
-<td style="text-align: right;">0.13</td>
-<td style="text-align: left;">Shan (East), Ayeyarwady, Shan (South)</td>
-<td style="text-align: left;">Khaunglanhpu</td>
 </tr>
 </tbody>
 </table>
@@ -3189,7 +3217,47 @@ Link number distribution:
 </div>
 </div>
 </div>
-<!-- RESULT: EHSA class descriptions (max 250 words per class) -->
+<p>Of the 330 townships, 95 are in a hot spot class, 163 in a cold spot class and 72 show no pattern. The hot spot classes hold 59.5% of all events. The descriptions below follow the order of the legend.</p>
+<section id="persistent-hot-spot" class="level4">
+<h4 class="anchored" data-anchor-id="persistent-hot-spot">Persistent hot spot</h4>
+<p>Only Pale in Sagaing is a persistent hot spot. It was a significant hot spot in at least 90% of the quarters, and its Gi* has no significant trend. Pale recorded 537 events. Its count rose from zero in 2021 Q1 to 56 in 2021 Q4 and stayed between about 30 and 46 events a quarter until 2023, before dropping in 2024. The neighbourhood stayed significantly hot even when Pale’s own count fell, which is why the classification does not change. Pale is the clearest example of long-running conflict in the south-west of Sagaing.</p>
+</section>
+<section id="consecutive-hot-spots" class="level4">
+<h4 class="anchored" data-anchor-id="consecutive-hot-spots">Consecutive hot spots</h4>
+<p>Seven townships became significant hot spots only in the latest quarters and stayed hot without a break: Nawnghkio, Kyaukkyi, Kyaukme, Kyainseikgyi, Yebyu, Mogoke and Shwegyin. They hold 6.1% of all events. Their average count rose from 9 events a quarter in 2021 to 43 in 2025, and it reached 55 in 2025 Q3, the highest of any class at the end of the study period. Nawnghkio, Kyaukme and Mogoke lie between Mandalay and northern Shan, where fighting grew after late 2023. Kyaukkyi and Shwegyin are in eastern Bago, Kyainseikgyi is in Kayin and Yebyu is in Tanintharyi. These are the clearest emerging hot spots and should be watched most closely.</p>
+</section>
+<section id="new-hot-spot" class="level4">
+<h4 class="anchored" data-anchor-id="new-hot-spot">New hot spot</h4>
+<p>Hkamti in northern Sagaing became a significant hot spot only in the final quarter. It had just 17 events in the whole period, so the result reflects its active neighbours more than the township itself. A new hot spot is an early signal. With so few events, it should be checked against local reports before it is used for planning.</p>
+</section>
+<section id="sporadic-hot-spots" class="level4">
+<h4 class="anchored" data-anchor-id="sporadic-hot-spots">Sporadic hot spots</h4>
+<p>Sporadic hot spots were significant hot spots in some quarters and never significant cold spots. This is the largest hot spot class, with 49 townships and 27.8% of all events. They include Kawkareik, Myawaddy and Hpapun in Kayin, Kale and Tamu in Sagaing, Hpakant, Myitkyina and Bhamo in Kachin, Muse in northern Shan, Maungdaw and Sittwe in Rakhine, and Hakha in Chin. Most are border or highland areas where fighting comes in waves. Their average count rose from 12 events a quarter in 2021 to a peak of 23 in 2023 Q4, and then settled at about 16. These places need flexible responses, because violence returns after quiet periods.</p>
+</section>
+<section id="oscillating-hot-spots" class="level4">
+<h4 class="anchored" data-anchor-id="oscillating-hot-spots">Oscillating hot spots</h4>
+<p>Oscillating hot spots are hot in the final quarter but were significant cold spots in at least one earlier quarter. There are 37 such townships, with 24.6% of all events. Ten are in Mandalay, nine in Sagaing and five in Magway, including Myaing, Madaya, Yesagyo, Pakokku, Sagaing and Myingyan. Three are in Rakhine (Kyaukpyu, Ann and Ramree) and three in Tanintharyi (Dawei, Palaw and Myeik). Their average count was below one event in 2021 Q1, so the cold quarters most likely come from the start of the period, when violence was concentrated in the cities. The average then rose to 26 events a quarter in 2023 and stayed near 20. Most of these townships are now long-running conflict areas rather than on-off areas.</p>
+</section>
+<section id="no-pattern-detected" class="level4">
+<h4 class="anchored" data-anchor-id="no-pattern-detected">No pattern detected</h4>
+<p>This class does not mean little violence. It includes Monywa (1,039 events) and Shwebo (806), two of the busiest townships, and it holds 25.5% of all events. A township falls here when its sequence of significant quarters does not match any EHSA rule. For example, a township that is hot in almost every quarter, but has a significant trend and a non-significant final quarter, fits no class. Fourteen of these townships are in Sagaing and eleven are in Rakhine. In Rakhine, a quiet 2023 followed by heavy fighting does not fit a single rule. These townships should be read together with the count maps, not ignored.</p>
+</section>
+<section id="oscillating-cold-spots" class="level4">
+<h4 class="anchored" data-anchor-id="oscillating-cold-spots">Oscillating cold spots</h4>
+<p>These eleven townships are cold in the final quarter but were significant hot spots at least once before. Five are in northern Shan, including Kutkai, Lashio and Laukkaing, five are in Yangon, and one is Paletwa in Chin. Their average count jumped to 33 events in 2023 Q4 and then fell to about 2 in 2025. In northern Shan, this matches a short and intense offensive followed by a sharp drop in reported fighting. In Yangon, the hot period was the urban violence of 2021.</p>
+</section>
+<section id="sporadic-cold-spots" class="level4">
+<h4 class="anchored" data-anchor-id="sporadic-cold-spots">Sporadic cold spots</h4>
+<p>This is the largest class overall, with 109 townships and 10.8% of all events. These townships were significant cold spots in some quarters and never significant hot spots. They include 28 Yangon townships, 14 in the Ayeyarwady delta, and townships in Magway, southern Shan and Bago (West). Some, such as Yedashe and Taungoo in Bago (East), have more than 190 events, but their neighbourhoods were quieter than the national average in some quarters. The average count was mostly between 2 and 5 events a quarter.</p>
+</section>
+<section id="new-consecutive-and-intensifying-cold-spots" class="level4">
+<h4 class="anchored" data-anchor-id="new-consecutive-and-intensifying-cold-spots">New, consecutive and intensifying cold spots</h4>
+<p>These classes describe places that became quieter. Chanmyathazi in Mandalay city is a new cold spot: its average fell from 27 events in 2021 Q4 to zero by mid-2025. Ten consecutive cold spots, nine of them in Yangon, such as Tamwe, Sanchaung and Ahlone, have been cold in every recent quarter. Their average fell from 4.6 events in 2021 Q2 to about one or less from 2023. Lanmadaw in Yangon is an intensifying cold spot. Together they show the end of the urban phase of the conflict in Yangon and Mandalay.</p>
+</section>
+<section id="persistent-cold-spots" class="level4">
+<h4 class="anchored" data-anchor-id="persistent-cold-spots">Persistent cold spots</h4>
+<p>Thirty-one townships were significant cold spots in at least 90% of the quarters with no significant trend. Ten are in Shan (East), six in Ayeyarwady, six in Shan (South) and five in Shan (North), including Tachileik, Kengtung and Mongla. Together they recorded only 198 events, and seven recorded none. These areas look stable in the data. However, part of eastern Shan is run by armed groups with long-standing ceasefires, and limited reporting may also make these areas look quieter than they are.</p>
+</section>
 </section>
 <section id="ehsa-by-event-type" class="level3">
 <h3 class="anchored" data-anchor-id="ehsa-by-event-type">EHSA by event type</h3>
@@ -3335,7 +3403,9 @@ Link number distribution:
 </table>
 </div>
 </div>
-<!-- RESULT: EHSA by type -->
+<p>The three event types follow different paths. Battles have seven consecutive hot spots, the same front as the main result (Kyainseikgyi, Yebyu, Mogoke, Kyaukme and Nawnghkio) plus Salingyi and Htantabin. Their oscillating hot spots cover Tanintharyi, Magway and Mandalay. Yangon has 18 persistent cold spots for battles, which shows that ground fighting never reached central Yangon.</p>
+<p>Explosions and remote violence have the widest hot spot area, with 41 oscillating hot spots across Sagaing, Magway, Mandalay and Bago. They also have the only new hot spots, Hpakant and Mogaung in Kachin, and six intensifying hot spots. Care is needed here. In <code>sfdep</code>, the intensifying rule counts any significant quarter, hot or cold. Several of these townships, such as Mongyang, Langkho and Nansang in Shan, were significant cold spots for most of the period. They became significant hot spots only at the end, with a strong upward trend. They are better read as new fronts of remote violence in previously quiet areas.</p>
+<p>Violence against civilians has six consecutive hot spots in the central dry zone, mostly in southern Mandalay Region, such as Meiktila, Mahlaing, Kyaukpadaung and Taungtha. This shows harm to civilians spreading south towards central Mandalay Region.</p>
 </section>
 </section>
 <section id="value-added-analysis-does-the-township-boundary-change-the-result" class="level2">
@@ -3679,7 +3749,9 @@ Link number distribution:
 </div>
 </div>
 </div>
-<!-- RESULT: hexagon comparison -->
+<p>The 1,490 hexagons each cover 541 sq km. Their Gi* hot spots are much more compact than at township level. Only 80 hexagons, 5.4% of the grid, are hot spots, but they contain 32.4% of all events. Most are in Sagaing (27), Mandalay (18) and Magway (10), which confirms the central dry zone hot spot.</p>
+<p>Three differences stand out. First, large hot townships are only partly hot. Of the 447 hexagons inside township hot spot classes, 199 are hot spots but 163 are cold spots. In large townships in northern Sagaing, Kachin and Tanintharyi, events follow roads, towns and front lines. Second, Yangon becomes a hot spot. Six hexagons around the city are Gi* hot spots and three are diminishing hot spots. At township level, Yangon is split into 45 small townships with modest counts, so it looks cold. Third, there are 74 consecutive hot spot hexagons, mostly in Magway, Sagaing and Mandalay, so the recent build-up is wider than the seven township results suggest.</p>
+<p>Overall, 52.6% of hexagons fall in the same broad class as their township. The main conclusions hold, but the size and shape of the hot spots depend on the spatial unit.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">"data/takehome2/rds"</span>, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -3714,11 +3786,26 @@ Link number distribution:
 </section>
 <section id="integrated-findings" class="level2">
 <h2 class="anchored" data-anchor-id="integrated-findings">Integrated findings</h2>
-<!-- RESULT: integrated findings -->
+<p>The results from all methods fit together.</p>
+<ol type="1">
+<li><strong>Violence is concentrated, and the concentration is stable at the core.</strong> The central dry zone, where Sagaing, Magway and Mandalay meet, is a High-High cluster, a Gi* hot spot and the largest group of hot spot classes. It holds 43% of the events and 52% of the reported fatalities. The hexagon analysis confirms it.</li>
+<li><strong>The fronts moved.</strong> Yangon and Mandalay cities were hot in 2021 and are now cold spots. Northern Shan flared in late 2023, Rakhine from 2024, and eastern Bago, Bago (West) and Kayin grew more slowly. The seven consecutive hot spots and the upward Mann-Kendall trends in Bago (West) point to where violence is building now.</li>
+<li><strong>The nature of violence changed.</strong> Air and drone strikes increased more than thirtyfold between 2021 and 2024, while IED attacks fell. Remote violence is the type with the widest hot spot area and with new and intensifying hot spots in previously quiet areas.</li>
+<li><strong>Most hot spots are unstable.</strong> Sporadic and oscillating classes cover 86 townships and more than half of all events. Only one township is a persistent hot spot.</li>
+<li><strong>The spatial unit matters.</strong> Township results are easy to link to administration and aid planning, but they overstate hot areas in large townships and hide urban clusters split across small townships. Using both units gives a fuller picture.</li>
+</ol>
 </section>
 <section id="implications-for-peace-building" class="level2">
 <h2 class="anchored" data-anchor-id="implications-for-peace-building">Implications for peace-building</h2>
-<!-- RESULT: implications -->
+<p>This analysis can support peace-building and humanitarian work in a modest way. It shows where and when to look more closely. It does not explain why violence happens.</p>
+<ul>
+<li><strong>Protect civilians in the central dry zone.</strong> This is the core hot spot for every variable, including violence against civilians and fatalities. Humanitarian access, protection monitoring and support for displaced people should give it priority.</li>
+<li><strong>Use the emerging hot spots as early warnings.</strong> The consecutive hot spots, such as Nawnghkio, Kyaukme, Mogoke, Kyaukkyi, Shwegyin, Kyainseikgyi and Yebyu, and the upward trends in Bago (West) show where violence is building. Agencies can prepare supplies and contingency plans there before the situation peaks.</li>
+<li><strong>Plan for air and drone strikes.</strong> The rise in remote violence means that civilians can be harmed far from ground fighting. Community early warning, safe shelters and mine and explosive risk education matter even in areas without battles.</li>
+<li><strong>Stay flexible in sporadic and oscillating areas.</strong> Violence returns after quiet quarters. Re-running this EHSA every quarter with new ACLED data would turn the report into a simple monitoring tool.</li>
+<li><strong>Do not treat cold spots as safe.</strong> Cold spots may reflect limited reporting. Local partners should confirm the situation before resources are moved away from them.</li>
+<li><strong>Target within large townships.</strong> The hexagon results show which parts of a large township are active, which helps to place mobile clinics or distribution points.</li>
+</ul>
 </section>
 <section id="limitations-and-assumptions" class="level2">
 <h2 class="anchored" data-anchor-id="limitations-and-assumptions">Limitations and assumptions</h2>
@@ -3795,60 +3882,13 @@ Link number distribution:
 </table>
 </div>
 </div>
-<!-- RESULT: limitation paragraph -->
-</section>
-<section id="reproducibility" class="level2">
-<h2 class="anchored" data-anchor-id="reproducibility">Reproducibility</h2>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">package =</span> <span class="fu">c</span>(<span class="st">"sf"</span>, <span class="st">"sfdep"</span>, <span class="st">"spdep"</span>, <span class="st">"tmap"</span>, <span class="st">"tidyverse"</span>, <span class="st">"Kendall"</span>, <span class="st">"plotly"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">version =</span> <span class="fu">map_chr</span>(package, <span class="sc">~</span> <span class="fu">as.character</span>(<span class="fu">packageVersion</span>(.x)))) <span class="sc">%&gt;%</span></span>
-<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<th style="text-align: left;">package</th>
-<th style="text-align: left;">version</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">sf</td>
-<td style="text-align: left;">1.1.0</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">sfdep</td>
-<td style="text-align: left;">0.2.5</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">spdep</td>
-<td style="text-align: left;">1.4.2</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">tmap</td>
-<td style="text-align: left;">4.2</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">tidyverse</td>
-<td style="text-align: left;">2.0.0</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Kendall</td>
-<td style="text-align: left;">2.2.2</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">plotly</td>
-<td style="text-align: left;">4.12.0</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>The report runs from top to bottom with the two data files listed above. Random seeds are set before every permutation step. The summary results used by the executive summary slides are saved to <code>data/takehome2/rds/take-home_ex02_results.rds</code>, so this report should be rendered before the slides.</p>
+<p>The most important limitation is that ACLED records reported events. Media access, internet shutdowns and the presence of local monitors differ across Myanmar, so some quiet areas may simply be under-reported. Fatality numbers are estimates and are often conservative. The analysis also uses counts, not rates, so it shows where violence is concentrated, not the risk to an individual. Finally, the EHSA classes follow fixed rules. Small changes in the threshold, the time unit or the neighbour definition can move a township between neighbouring classes, so the broad families of hot spot, cold spot and no pattern are more reliable than any single class label.</p>
 </section>
 <section id="conclusion" class="level2">
 <h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
-<!-- RESULT: conclusion -->
+<p>Between January 2021 and September 2025, ACLED recorded 53,907 political violence events in Myanmar that could be placed in a township. The violence grew quickly after the coup, peaked in late 2023, and changed from bombings and attacks in towns to a wider war with more air strikes and shelling.</p>
+<p>Global and local measures of spatial association show strong clustering. One main hot spot covers the central dry zone, and a smaller one follows the eastern borderlands. Emerging hot spot analysis adds the time dimension. Most hot spots come and go, the large cities have become cold spots, and a group of consecutive hot spots in northern Shan, eastern Bago, Kayin and Tanintharyi marks where violence is building now. The hexagon analysis confirms the main result but shows that the size of a hot spot depends on the spatial unit.</p>
+<p>These findings can help humanitarian and peace-building actors decide where to look first and how often to update their view. They should be combined with local knowledge, population data and field reports before they are used for decisions.</p>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>

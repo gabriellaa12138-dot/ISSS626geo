@@ -19,3 +19,4 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 -   [Technical Report 1: Road Traffic Accident Patterns in Bangkok](take-home_ex01.qmd)
 -   [Executive Summary 1](take-home_ex01_slides.qmd)
 -   [Technical Report 2: Geospatial Analytics for Peace in Myanmar](take-home_ex02.qmd)
+-   [Executive Summary 2](take-home_ex02_slides.qmd)

@@ -1,0 +1,391 @@
+---
+title: "Geospatial Analytics for Peace"
+subtitle: "Where and how political violence evolved in Myanmar, January 2021 to September 2025 (Take home Exercise 2)"
+author: "Ziying Zhou"
+format:
+  revealjs:
+    slide-number: true
+    transition: none
+    scrollable: true
+    css: take-home-slides.css
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+pacman::p_load(sf, tmap, tidyverse, knitr)
+tmap_mode("plot")
+
+# Results saved by take-home_ex02.qmd. Render the technical report first.
+res <- read_rds("data/takehome2/rds/take-home_ex02_results.rds")
+mmr <- res$mmr
+states <- res$states
+
+type_cols <- c(
+  "Battles" = "#c2410c",
+  "Explosions/Remote violence" = "#7c3aed",
+  "Violence against civilians" = "#0f766e"
+)
+
+lisa_cols <- c("grey92", "#d7191c", "#2c7bb6", "#fdae61", "#abd9e9")
+gi_cols <- c("#2166ac", "#92c5de", "grey92", "#f4a582", "#b2182b")
+
+ehsa_palette <- c(
+  "persistent hotspot" = "#67000d",
+  "intensifying hotspot" = "#cb181d",
+  "consecutive hotspot" = "#f16913",
+  "new hotspot" = "#fd8d3c",
+  "sporadic hotspot" = "#fdd0a2",
+  "oscilating hotspot" = "#e7298a",
+  "oscillating hotspot" = "#e7298a",
+  "diminishing hotspot" = "#ae017e",
+  "historical hotspot" = "#8c6bb1",
+  "no pattern detected" = "grey90",
+  "historical coldspot" = "#41ae76",
+  "diminishing coldspot" = "#66c2a4",
+  "oscilating coldspot" = "#99d8c9",
+  "oscillating coldspot" = "#99d8c9",
+  "sporadic coldspot" = "#c6dbef",
+  "new coldspot" = "#9ecae1",
+  "consecutive coldspot" = "#6baed6",
+  "intensifying coldspot" = "#2171b5",
+  "persistent coldspot" = "#08306b"
+)
+
+ehsa_factor <- function(x) {
+  present <- unique(x)
+  factor(x, levels = c(intersect(names(ehsa_palette), present), setdiff(present, names(ehsa_palette))))
+}
+
+ehsa_values <- function(f) {
+  cols <- ehsa_palette[levels(f)]
+  cols[is.na(cols)] <- "grey50"
+  unname(cols)
+}
+
+ehsa_family <- function(x) {
+  case_when(
+    str_detect(x, "hotspot") ~ "Hot spot",
+    str_detect(x, "coldspot") ~ "Cold spot",
+    TRUE ~ "No pattern"
+  )
+}
+
+small_map <- function(data, var, title, scale, legend_title) {
+  tm_shape(data) +
+    tm_polygons(
+      fill = var,
+      fill.scale = scale,
+      fill.legend = tm_legend(title = legend_title),
+      col = "white",
+      lwd = 0.1
+    ) +
+    tm_shape(states) +
+    tm_borders(col = "grey35", lwd = 0.5) +
+    tm_title(title, size = 0.8)
+}
+```
+
+## Contents
+
+1.  Question, data and approach
+2.  Violence grew and changed form
+3.  Where violence concentrates
+4.  The fronts moved
+5.  Clusters and hot spots
+6.  Hot spots by type of violence
+7.  Emerging hot spots
+8.  How the EHSA classes changed
+9.  Does the spatial unit matter?
+10. Findings, limits and implications
+
+## Question, data and approach
+
+::::: columns
+::: {.column width="48%"}
+**Question.** Where did political violence concentrate in Myanmar, and how did these concentrations emerge, persist or fade between January 2021 and September 2025?
+
+**Data**
+
+-   ACLED event data: battles, explosions or remote violence, and violence against civilians.
+-   MIMU Township Boundaries v9.4: 330 townships.
+-   53,907 events kept after removing region-level locations and 3 events at sea; 89,012 reported fatalities.
+:::
+
+::: {.column width="52%"}
+**Approach**
+
+1.  Point-in-polygon join to townships and a township by quarter space-time cube (19 quarters).
+2.  Choropleth, point, yearly and state by quarter views.
+3.  Global Moran's I, Local Moran's I and Gi\* with Queen neighbours (p \< 0.05).
+4.  Gi\* by quarter, Mann-Kendall test and emerging hot spot analysis (EHSA).
+5.  Value added: the same analysis on 25 km hexagons to test the effect of township boundaries.
+:::
+:::::
+
+## Violence grew and changed form
+
+```{r}
+#| label: slide-trend
+#| fig-width: 11
+#| fig-height: 4.2
+ggplot(res$national_q, aes(x = quarter_start, y = events, colour = event_type)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 1.6) +
+  scale_colour_manual(values = type_cols, name = NULL) +
+  scale_x_date(date_breaks = "6 months", date_labels = "%Y-%m") +
+  labs(x = NULL, y = "Events per quarter") +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+```
+
+-   Events rose from **401** in 2021 Q1 to **3,004** in 2021 Q4 and peaked at **4,026** in 2023 Q4. 2025 is still about 2,800 to 3,000 a quarter.
+-   From 2023 Q4, remote violence exceeds battles. **Air and drone strikes rose from 88 (2021) to 2,977 (2024)**, while IED attacks fell.
+
+## Where violence concentrates
+
+::::: columns
+::: {.column width="62%"}
+```{r}
+#| label: slide-totals
+#| fig-width: 8
+#| fig-height: 6.2
+tmap_arrange(
+  small_map(mmr, "events", "Events, 2021 to 2025 Q3",
+            tm_scale_intervals(style = "jenks", n = 6, values = "brewer.or_rd"), "Events"),
+  small_map(mmr, "fatalities", "Reported fatalities",
+            tm_scale_intervals(style = "jenks", n = 6, values = "brewer.reds"), "Fatalities"),
+  ncol = 2
+)
+```
+:::
+
+::: {.column width="38%"}
+-   **Sagaing, Magway and Mandalay** hold **43%** of events and **52%** of reported fatalities.
+-   Busiest townships: Monywa (1,039), Kawkareik (946), Myaing (934), Kale (886) and Hpakant (854).
+-   A second band of high counts follows the **Kayin and Tanintharyi** borderlands.
+-   Eastern Shan and the Ayeyarwady delta report very few events.
+:::
+:::::
+
+## The fronts moved
+
+```{r}
+#| label: slide-heatmap
+#| fig-width: 11
+#| fig-height: 4.6
+ggplot(res$state_q, aes(x = quarter_label, y = fct_reorder(ST, events, .fun = sum), fill = event_class)) +
+  geom_tile(colour = "white", linewidth = 0.3) +
+  scale_fill_brewer(palette = "YlOrRd", name = "Events", drop = FALSE) +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+-   **Yangon** was active in 2021 and quiet from 2023. **Sagaing** peaked above 1,000 events in 2022 Q3 and declined from 2024.
+-   **Northern Shan** jumped to 878 events in 2023 Q4, **Rakhine** to 513 in 2024 Q1, and **Bago** grew steadily.
+
+## Clusters and hot spots
+
+::::: columns
+::: {.column width="62%"}
+```{r}
+#| label: slide-lmsa
+#| fig-width: 8
+#| fig-height: 6.2
+lisa_all <- mmr %>%
+  select(TS_PCODE) %>%
+  left_join(filter(res$lisa, variable == "All political violence"), by = "TS_PCODE")
+
+gi_all <- mmr %>%
+  select(TS_PCODE) %>%
+  left_join(filter(res$gi, variable == "All political violence"), by = "TS_PCODE")
+
+tmap_arrange(
+  small_map(lisa_all, "lisa_class", "Local Moran's I",
+            tm_scale_categorical(values = lisa_cols), "LISA, p < 0.05"),
+  small_map(gi_all, "gi_class", "Getis-Ord Gi*",
+            tm_scale_categorical(values = gi_cols), "Gi*"),
+  ncol = 2
+)
+```
+:::
+
+::: {.column width="38%"}
+-   Strong global clustering: **Moran's I = 0.45 to 0.56**, p \< 0.001 for all five variables.
+-   **36 High-High** townships and **34 Gi\* hot spots**, mostly in Sagaing, Mandalay and Magway.
+-   A smaller hot chain in **Kayin and Tanintharyi**.
+-   Cold spots: eastern Shan, the delta and Yangon. Cold does not mean safe, since reporting may be thin.
+:::
+:::::
+
+## Hot spots by type of violence
+
+```{r}
+#| label: slide-gi-types
+#| fig-width: 11
+#| fig-height: 4.8
+gi_types <- mmr %>%
+  select(TS_PCODE) %>%
+  left_join(
+    filter(res$gi, variable %in% c("Battles", "Explosions/remote violence", "Violence against civilians")),
+    by = "TS_PCODE"
+  ) %>%
+  mutate(variable = droplevels(variable))
+
+tm_shape(gi_types) +
+  tm_polygons(
+    fill = "gi_class",
+    fill.scale = tm_scale_categorical(values = gi_cols),
+    fill.legend = tm_legend(title = "Gi*"),
+    col = "white",
+    lwd = 0.1
+  ) +
+  tm_facets_wrap(by = "variable", ncol = 3)
+```
+
+-   All three types share the central dry zone hot spot. **Battles** add Tanintharyi and the Kayin border; **remote violence** adds eastern Bago.
+-   **Violence against civilians** is concentrated almost only in the central dry zone and Tanintharyi.
+
+## Emerging hot spots
+
+::::: columns
+::: {.column width="45%"}
+```{r}
+#| label: slide-ehsa-map
+#| fig-width: 5
+#| fig-height: 6.4
+ehsa_sf <- mmr %>%
+  select(TS_PCODE) %>%
+  left_join(res$ehsa, by = "TS_PCODE") %>%
+  mutate(ehsa_class = ehsa_factor(classification))
+
+tm_shape(ehsa_sf) +
+  tm_polygons(
+    fill = "ehsa_class",
+    fill.scale = tm_scale_categorical(values = ehsa_values(ehsa_sf$ehsa_class)),
+    fill.legend = tm_legend(title = "EHSA class", position = tm_pos_out("right", "center")),
+    col = "white",
+    lwd = 0.1
+  ) +
+  tm_shape(states) +
+  tm_borders(col = "grey35", lwd = 0.5)
+```
+:::
+
+::: {.column width="55%"}
+```{r}
+#| label: slide-ehsa-bar
+#| fig-width: 6
+#| fig-height: 3.6
+ehsa_cols_named <- setNames(ehsa_values(ehsa_sf$ehsa_class), levels(ehsa_sf$ehsa_class))
+
+ggplot(st_drop_geometry(ehsa_sf), aes(y = fct_rev(ehsa_class), fill = ehsa_class)) +
+  geom_bar(show.legend = FALSE) +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = -0.2, size = 3.5) +
+  scale_fill_manual(values = ehsa_cols_named) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(x = "Townships", y = NULL) +
+  theme_minimal(base_size = 11)
+```
+
+-   Only **Pale** is a persistent hot spot. **49 sporadic** and **37 oscillating** hot spots hold 52% of events.
+-   **7 consecutive hot spots** (Nawnghkio, Kyaukme, Mogoke, Kyaukkyi, Shwegyin, Kyainseikgyi, Yebyu) are building now.
+:::
+:::::
+
+## How the EHSA classes changed
+
+```{r}
+#| label: slide-class-trend
+#| fig-width: 11
+#| fig-height: 4.4
+main_classes <- c(
+  "persistent hotspot", "consecutive hotspot", "oscilating hotspot", "oscillating hotspot",
+  "sporadic hotspot", "no pattern detected", "oscilating coldspot", "oscillating coldspot",
+  "consecutive coldspot", "persistent coldspot"
+)
+
+class_trend <- res$class_trend %>%
+  filter(as.character(ehsa_class) %in% main_classes) %>%
+  mutate(ehsa_class = droplevels(ehsa_class))
+
+ggplot(class_trend, aes(x = quarter_start, y = mean_events, colour = ehsa_class)) +
+  geom_line(linewidth = 0.9) +
+  facet_wrap(~ ehsa_class, scales = "free_y", nrow = 2) +
+  scale_colour_manual(values = ehsa_palette) +
+  labs(x = NULL, y = "Mean events per township") +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "none")
+```
+
+-   **Consecutive hot spots** rose from 9 to 43 events per township and quarter (2021 to 2025). **Oscillating cold spots** in northern Shan and Yangon peaked in 2023 Q4 and then fell sharply.
+-   "No pattern detected" still includes Monywa and Shwebo, two of the busiest townships.
+
+## Does the spatial unit matter?
+
+::::: columns
+::: {.column width="62%"}
+```{r}
+#| label: slide-hex
+#| fig-width: 8
+#| fig-height: 6.2
+family_levels <- c("Cold spot", "No pattern", "Hot spot")
+family_cols <- c("#2171b5", "grey90", "#cb181d")
+
+ts_family <- ehsa_sf %>%
+  mutate(family = factor(ehsa_family(classification), levels = family_levels))
+
+hex_family <- res$hex %>%
+  left_join(res$hex_ehsa, by = c("hex_id" = "location")) %>%
+  mutate(family = factor(ehsa_family(classification), levels = family_levels))
+
+tmap_arrange(
+  small_map(ts_family, "family", "Township EHSA",
+            tm_scale_categorical(values = family_cols), "EHSA family"),
+  small_map(hex_family, "family", "25 km hexagon EHSA",
+            tm_scale_categorical(values = family_cols), "EHSA family"),
+  ncol = 2
+)
+```
+:::
+
+::: {.column width="38%"}
+-   The **central dry zone** hot spot appears at both scales.
+-   Only **`r res$hex_agreement$same_family_pct`%** of hexagons share their township's class. Within township hot spots, many hexagons are cold, because events follow roads and towns.
+-   **Yangon** is cold at township level but a fading hot spot on hexagons, because its 45 small townships split the events.
+-   Use townships for administration and hexagons for targeting.
+:::
+:::::
+
+## Findings, limits and implications
+
+:::::: columns
+::: {.column width="34%"}
+**Findings**
+
+-   One stable core: the central dry zone, with 43% of events and 52% of fatalities.
+-   Cities cooled after 2021. New fronts opened in northern Shan, Rakhine, Bago and Kayin.
+-   Most hot spots come and go. Seven consecutive hot spots are building now.
+:::
+
+::: {.column width="33%"}
+**Limitations**
+
+-   ACLED counts reported events. Access and coverage vary.
+-   Counts, not rates: there is no population at risk.
+-   EHSA labels depend on the rules, the time unit and the neighbours.
+:::
+
+::: {.column width="33%"}
+**Implications for peace-building**
+
+-   Prioritise civilian protection and access in the central dry zone.
+-   Use consecutive hot spots and rising trends as early warning.
+-   Prepare for air and drone strikes beyond front lines.
+-   Re-run EHSA every quarter and confirm cold spots with local partners.
+:::
+::::::
