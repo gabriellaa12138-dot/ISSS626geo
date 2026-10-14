@@ -1,6 +1,6 @@
 ---
 title: "Geospatial Analytics for Peace"
-subtitle: "Where and how political violence evolved in Myanmar, January 2021 to September 2025 (Take home Exercise 2)"
+subtitle: "Where and how political violence evolved in Myanmar (Take home Exercise 2)"
 author: "Ziying Zhou"
 format:
   revealjs:
