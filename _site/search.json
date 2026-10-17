@@ -830,21 +830,21 @@
     "href": "In-class Exercise 7.html",
     "title": "In-class Exercise 7",
     "section": "",
-    "text": "The catchment package is on GitHub, not CRAN. This chunk installs it only if it is missing, so it is quick once the package is installed.\n\noptions(repos = c(CRAN = \"https://cloud.r-project.org\"))\nif (!requireNamespace(\"remotes\", quietly = TRUE)) install.packages(\"remotes\")\nif (!requireNamespace(\"catchment\", quietly = TRUE)) remotes::install_github(\"uva-bi-sdad/catchment\")"
+    "text": "options(repos = c(CRAN = \"https://cloud.r-project.org\"))\nif (!requireNamespace(\"remotes\", quietly = TRUE)) install.packages(\"remotes\")\nif (!requireNamespace(\"catchment\", quietly = TRUE)) remotes::install_github(\"uva-bi-sdad/catchment\")"
   },
   {
     "objectID": "In-class Exercise 7.html#install-the-catchment-package",
     "href": "In-class Exercise 7.html#install-the-catchment-package",
     "title": "In-class Exercise 7",
     "section": "",
-    "text": "The catchment package is on GitHub, not CRAN. This chunk installs it only if it is missing, so it is quick once the package is installed.\n\noptions(repos = c(CRAN = \"https://cloud.r-project.org\"))\nif (!requireNamespace(\"remotes\", quietly = TRUE)) install.packages(\"remotes\")\nif (!requireNamespace(\"catchment\", quietly = TRUE)) remotes::install_github(\"uva-bi-sdad/catchment\")"
+    "text": "options(repos = c(CRAN = \"https://cloud.r-project.org\"))\nif (!requireNamespace(\"remotes\", quietly = TRUE)) install.packages(\"remotes\")\nif (!requireNamespace(\"catchment\", quietly = TRUE)) remotes::install_github(\"uva-bi-sdad/catchment\")"
   },
   {
     "objectID": "In-class Exercise 7.html#load-the-packages",
     "href": "In-class Exercise 7.html#load-the-packages",
     "title": "In-class Exercise 7",
     "section": "Load the packages",
-    "text": "Load the packages\n\npacman::p_load(sf, tmap, catchment, tidyverse)"
+    "text": "Load the packages\n\npacman::p_load(sf, tmap, catchment, SpatialAcc, tidyverse)"
   },
   {
     "objectID": "In-class Exercise 7.html#import-the-data",
@@ -880,5 +880,12 @@
     "title": "In-class Exercise 7",
     "section": "Compare 2SFCA and E2SFCA",
     "text": "Compare 2SFCA and E2SFCA\n\nhexagon_acc &lt;- bind_cols(hexagons, df_2sfca, df_e2sfca)\nhead(hexagon_acc)\n\nSimple feature collection with 6 features and 4 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 2667.538 ymin: 22756.33 xmax: 3244.888 ymax: 27756.33\nProjected CRS: SVY21 / Singapore TM\n  fid demand 2SFCA E2SFCA                       geometry\n1   1    100     0      0 POLYGON ((2667.538 27506.33...\n2   2    100     0      0 POLYGON ((2667.538 25006.33...\n3   3    100     0      0 POLYGON ((2667.538 24506.33...\n4   4    100     0      0 POLYGON ((2667.538 24006.33...\n5   5    100     0      0 POLYGON ((2667.538 23506.33...\n6   6    100     0      0 POLYGON ((2667.538 23006.33...\n\n\n\ncor(hexagon_acc$`2SFCA`, hexagon_acc$E2SFCA, method = \"spearman\")\n\n[1] 0.9580122\n\n\nBoth methods have the same mean, because the total capacity is shared out in both cases. E2SFCA has a lower median and a smaller maximum, because centres that are 3 to 5 km away now add very little."
+  },
+  {
+    "objectID": "In-class Exercise 7.html#map",
+    "href": "In-class Exercise 7.html#map",
+    "title": "In-class Exercise 7",
+    "section": "Map",
+    "text": "Map\n\nacc_Hansen &lt;- data.frame(ac(hexagons$demand,\n                            eldercare$capacity,\n                            distmat_km,\n                            power = 0.5,\n                            family = \"Hansen\"))\n\ncolnames(acc_Hansen) &lt;- \"accHansen\"\nacc_Hansen &lt;- as_tibble(acc_Hansen)\nhexagon_Hansen &lt;- bind_cols(hexagons, acc_Hansen)\n\n\nmapex &lt;- st_bbox(hexagons)\n\n\ntm_shape(hexagon_Hansen,\n         bbox = mapex) +\n  tm_polygons(fill = \"accHansen\",\n              fill.scale = tm_scale_intervals(\n                style = \"quantile\",\n                n = 10,\n                values = \"brewer.blues\")) +\ntm_shape(eldercare) +\n  tm_dots(size = 0.3,\n          fill = \"red\",\n          col = \"black\") +\n  tm_title(\"Accessibility to eldercare: Hansen method\") +\n  tm_layout(frame = TRUE) +\n  tm_compass(type = \"8star\", size = 2) +\n  tm_scalebar() +\n  tm_grid(alpha = 0.2)"
   }
 ]

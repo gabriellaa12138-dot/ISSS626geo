@@ -5,8 +5,6 @@ format: html
 
 ## Install the catchment package
 
-The `catchment` package is on GitHub, not CRAN. This chunk installs it only if it is missing, so it is quick once the package is installed.
-
 ```{r}
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
@@ -16,7 +14,7 @@ if (!requireNamespace("catchment", quietly = TRUE)) remotes::install_github("uva
 ## Load the packages
 
 ```{r}
-pacman::p_load(sf, tmap, catchment, tidyverse)
+pacman::p_load(sf, tmap, catchment, SpatialAcc, tidyverse)
 ```
 
 ## Import the data
@@ -122,3 +120,40 @@ cor(hexagon_acc$`2SFCA`, hexagon_acc$E2SFCA, method = "spearman")
 ```
 
 Both methods have the same mean, because the total capacity is shared out in both cases. E2SFCA has a lower median and a smaller maximum, because centres that are 3 to 5 km away now add very little.
+
+## Map
+
+```{r}
+acc_Hansen <- data.frame(ac(hexagons$demand,
+                            eldercare$capacity,
+                            distmat_km,
+                            power = 0.5,
+                            family = "Hansen"))
+
+colnames(acc_Hansen) <- "accHansen"
+acc_Hansen <- as_tibble(acc_Hansen)
+hexagon_Hansen <- bind_cols(hexagons, acc_Hansen)
+```
+
+```{r}
+mapex <- st_bbox(hexagons)
+```
+
+```{r}
+tm_shape(hexagon_Hansen,
+         bbox = mapex) +
+  tm_polygons(fill = "accHansen",
+              fill.scale = tm_scale_intervals(
+                style = "quantile",
+                n = 10,
+                values = "brewer.blues")) +
+tm_shape(eldercare) +
+  tm_dots(size = 0.3,
+          fill = "red",
+          col = "black") +
+  tm_title("Accessibility to eldercare: Hansen method") +
+  tm_layout(frame = TRUE) +
+  tm_compass(type = "8star", size = 2) +
+  tm_scalebar() +
+  tm_grid(alpha = 0.2)
+```
