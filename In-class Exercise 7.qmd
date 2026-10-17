@@ -1,0 +1,124 @@
+---
+title: "In-class Exercise 7"
+format: html
+---
+
+## Install the catchment package
+
+The `catchment` package is on GitHub, not CRAN. This chunk installs it only if it is missing, so it is quick once the package is installed.
+
+```{r}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+if (!requireNamespace("catchment", quietly = TRUE)) remotes::install_github("uva-bi-sdad/catchment")
+```
+
+## Load the packages
+
+```{r}
+pacman::p_load(sf, tmap, catchment, tidyverse)
+```
+
+## Import the data
+
+```{r}
+mpsz <- st_read(dsn = "data/chap17/geospatial", layer = "MP14_SUBZONE_NO_SEA_PL")
+```
+
+```{r}
+hexagons <- st_read(dsn = "data/chap17/geospatial", layer = "hexagons")
+```
+
+```{r}
+eldercare <- st_read(dsn = "data/chap17/geospatial", layer = "ELDERCARE")
+```
+
+```{r}
+ODMatrix <- read_csv("data/chap17/aspatial/OD_Matrix.csv", skip = 0)
+```
+
+## Prepare the data
+
+All three layers are put in the same projected CRS (SVY21, EPSG 3414).
+
+```{r}
+mpsz <- st_transform(mpsz, 3414)
+eldercare <- st_transform(eldercare, 3414)
+hexagons <- st_transform(hexagons, 3414)
+```
+
+Each eldercare centre gets a capacity of 100. Each hexagon gets a demand of 100.
+
+```{r}
+eldercare <- eldercare %>%
+  select(fid, ADDRESSPOS) %>%
+  mutate(capacity = 100)
+```
+
+```{r}
+hexagons <- hexagons %>%
+  select(fid) %>%
+  mutate(demand = 100)
+```
+
+The OD matrix is turned into a wide matrix. Rows are hexagons and columns are eldercare centres. The distance is changed from metres to kilometres.
+
+```{r}
+distmat <- ODMatrix %>%
+  select(origin_id, destination_id, total_cost) %>%
+  spread(destination_id, total_cost) %>%
+  select(-origin_id)
+
+distmat_km <- as.matrix(distmat / 1000)
+dim(distmat_km)
+```
+
+## Compute 2SFCA with catchment_ratio()
+
+`max_cost = 5` sets a 5 km catchment.
+
+```{r}
+df_2sfca <- catchment_ratio(
+  consumers = hexagons$demand,
+  providers = eldercare$capacity,
+  cost = distmat_km,
+  max_cost = 5) %>%
+  as.data.frame() %>%
+  rename("2SFCA" = ".")
+```
+
+```{r}
+summary(df_2sfca)
+```
+
+About 1,281 hexagons get 0, because no eldercare centre is within 5 km of them.
+
+## Enhanced 2-Step Floating Catchment Area (E2SFCA)
+
+```{r}
+step_weights <- list(c(5, .01), c(4, .05), c(3, .1), c(2, .4), c(1, 1))
+df_e2sfca <- catchment_ratio(
+  consumers = hexagons$demand,
+  providers = eldercare$capacity,
+  cost = distmat_km,
+  weight = step_weights) %>%
+  as.data.frame() %>%
+  rename("E2SFCA" = ".")
+```
+
+```{r}
+summary(df_e2sfca)
+```
+
+## Compare 2SFCA and E2SFCA
+
+```{r}
+hexagon_acc <- bind_cols(hexagons, df_2sfca, df_e2sfca)
+head(hexagon_acc)
+```
+
+```{r}
+cor(hexagon_acc$`2SFCA`, hexagon_acc$E2SFCA, method = "spearman")
+```
+
+Both methods have the same mean, because the total capacity is shared out in both cases. E2SFCA has a lower median and a smaller maximum, because centres that are 3 to 5 km away now add very little.
