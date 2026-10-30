@@ -1,0 +1,427 @@
+---
+title: "Hands-on Exercise 8: Market Area Analysis using the Huff Model"
+author: "Zhou Ziying"
+date: "2026-10-19"
+date-modified: today
+execute:
+  echo: true
+  eval: true
+  warning: false
+  message: false
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    code-fold: false
+    fig-width: 10
+    fig-height: 6
+---
+
+## Overview
+
+This exercise follows [Chapter 18](https://r4gdsa.netlify.app/chap18). I find the market area (trade area) of fast-food stores in Taichung City. The market area is the area where a store gets its customers.
+
+I use the Huff model. It estimates the chance that people in a village will visit a store. The chance goes up when the store is more attractive. It goes down when the store is far away or when other stores are nearby.
+
+## 18.1 The Data
+
+Five files are used. They are the course files for this chapter, saved in `data/chap18`.
+
+-   `STORES_TC`: store locations (points).
+-   `TOWN_TC`: town boundaries (polygons).
+-   `VILLAGE_TC`: village boundaries (polygons). These are the origins.
+-   `pop2019.csv`: population of each village in 2019. `H_CNT` is households, `P_CNT` is total population, `M_CNT` is male and `F_CNT` is female.
+-   `Store_sales_data.csv`: sales records of the stores.
+
+## 18.2 Getting Started
+
+The `MCI` package runs the Huff model. `sf` handles the spatial data and the distances. `tmap` draws the maps. `ggstatsplot` draws a scatter plot with statistics.
+
+```{r}
+#| label: chapter-18-demo-01
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+pacman::p_load(sf, tidyverse, MCI, tmap, ggstatsplot)
+```
+
+## 18.3 Importing Data
+
+### 18.3.1 Importing geospatial data
+
+`st_read()` imports the three shapefiles.
+
+```{r}
+#| label: chapter-18-demo-02
+stores <- st_read(
+  dsn = "data/chap18/geospatial",
+  layer = "STORES_TC")
+```
+
+```{r}
+#| label: chapter-18-demo-03
+town <- st_read(
+  dsn = "data/chap18/geospatial",
+  layer = "TOWN_TC")
+```
+
+```{r}
+#| label: chapter-18-demo-04
+village <- st_read(
+  dsn = "data/chap18/geospatial",
+  layer = "VILLAGE_TC")
+```
+
+All three layers should use TWD97 / TM2 zone 121 (EPSG 3826). I check this before any distance work, because distances are only correct when all layers share the same projected CRS. There are 28 stores, 28 towns and 622 villages.
+
+```{r}
+#| label: chapter-18-crs-check
+tibble(layer = c("stores", "town", "village"),
+       epsg = c(st_crs(stores)$epsg,
+                st_crs(town)$epsg,
+                st_crs(village)$epsg))
+```
+
+All three layers are EPSG 3826, so no transformation is needed.
+
+The map shows towns, villages and stores. It is interactive, so I can zoom in.
+
+```{r}
+#| label: chapter-18-demo-05
+tmap_mode("view")
+tm_shape(town) +
+  tm_polygons() +
+tm_shape(village) +
+  tm_polygons() +
+tm_shape(stores) +
+  tm_dots()
+tmap_mode("plot")
+```
+
+### 18.3.2 Importing aspatial data
+
+`read_csv()` imports the two CSV files.
+
+```{r}
+#| label: chapter-18-demo-06
+pop2019 <- read_csv("data/chap18/aspatial/pop2019.csv")
+
+store_sales <- read_csv("data/chap18/aspatial/Store_sales_data.csv")
+```
+
+```{r}
+#| label: chapter-18-demo-07
+summary(store_sales)
+```
+
+There are 5,499 sales records. Some records have an amount of 0, and one bill is as large as 6,076,060, so the raw records are very uneven.
+
+## 18.4 Data Preparation
+
+### 18.4.1 Aggregating store sales
+
+The sales file has many rows for each store. I add them up by store code.
+
+```{r}
+#| label: chapter-18-demo-08
+store_sales_aggre <- store_sales %>%
+  group_by(`Store Code`) %>%
+  summarise(
+    "Total_Bill" = sum(Bills, na.rm = TRUE),
+    "Total_Sales" = sum(Amount, na.rm = TRUE))
+```
+
+### 18.4.2 Relational join
+
+`left_join()` adds the sales to the store points. I also create `Store_size = 100` for every store. This means all stores are equally attractive, so only distance and competition decide the result.
+
+```{r}
+#| label: chapter-18-demo-09
+stores <- stores %>%
+  left_join(store_sales_aggre,
+            by = join_by(
+              Store_CD == `Store Code`)) %>%
+  mutate(Store_size = 100)
+```
+
+I check for missing values.
+
+```{r}
+#| label: chapter-18-demo-10
+summary(stores)
+```
+
+All 28 stores got a sales total, so there are no missing values. Total sales range from about 1.48 million to 8.23 million, with a mean of about 5.54 million.
+
+### 18.4.3 Tidying pop2019 data.frame
+
+I want to join `pop2019` to `village`. First I look at the join fields.
+
+```{r}
+#| label: chapter-18-demo-11
+glimpse(pop2019)
+```
+
+```{r}
+#| label: chapter-18-demo-12
+glimpse(village)
+```
+
+The village ID in `pop2019` (`V_ID`) has a hyphen, for example `66000110-002`. The village code in `village` (`VILLCODE`) does not. I remove the hyphen so the two match.
+
+```{r}
+#| label: chapter-18-demo-13
+pop2019 <- pop2019 %>%
+  mutate(V_ID = str_remove_all(
+    V_ID, "-"))
+```
+
+Now the join works.
+
+```{r}
+#| label: chapter-18-demo-14
+village <- village %>%
+  left_join(pop2019,
+            by = join_by(
+              VILLCODE == V_ID))
+```
+
+### 18.4.4 Check for missing or zero values
+
+```{r}
+#| label: chapter-18-demo-15
+summary(village)
+```
+
+Five villages have no population values. I remove them and check again.
+
+```{r}
+#| label: chapter-18-demo-16
+village <- village %>%
+  filter(!is.na(P_CNT))
+```
+
+```{r}
+#| label: chapter-18-demo-17
+tibble(field = c("H_CNT", "P_CNT", "M_CNT", "F_CNT"),
+       has_missing = c(any(is.na(village$H_CNT)),
+                       any(is.na(village$P_CNT)),
+                       any(is.na(village$M_CNT)),
+                       any(is.na(village$F_CNT))))
+```
+
+All four say `FALSE`, so 617 villages are left.
+
+## 18.5 Computing Distance Matrix
+
+Villages are polygons, so I use one point for each village. `st_point_on_surface()` gives a point that is always inside the village. Then `st_distance()` measures the distance from each village point to each store. The unit is metres.
+
+```{r}
+#| label: chapter-18-demo-18
+village_center <- st_point_on_surface(village)
+distmat <- st_distance(village_center, stores)
+```
+
+The Huff function needs a long table, so I name the rows and columns and then turn the matrix into long format.
+
+```{r}
+#| label: chapter-18-demo-19
+rownames(distmat) <- village$`VILLCODE`
+colnames(distmat) <- stores$`Store_CD`
+
+distmat_long <- distmat %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "VILLCODE") %>%
+  pivot_longer(
+    cols = -VILLCODE,
+    names_to = "Store_CD",
+    values_to = "distance"
+  ) %>%
+  mutate(distance = as.numeric(distance))
+```
+
+Each village and store pair is one row. The number of rows should be the number of villages times the number of stores.
+
+```{r}
+#| label: chapter-18-rows-check
+tibble(rows = nrow(distmat_long),
+       villages_x_stores = nrow(village) * nrow(stores))
+```
+
+There are 17,276 rows, which is 617 villages × 28 stores. Every pair is there.
+
+## 18.6 Preparing Interaction Matrix
+
+The `MCI` package needs an interaction matrix. It has the village, the store, the store size and the distance. The distance must be the last column.
+
+```{r}
+#| label: chapter-18-demo-20
+interaction_matrix <- distmat_long %>%
+  left_join(
+    stores %>%
+      st_drop_geometry() %>%
+      select(Store_CD, Store_size),
+    by = "Store_CD") %>%
+  relocate(
+    distance, .after = last_col())
+```
+
+```{r}
+#| label: chapter-18-demo-21
+summary(interaction_matrix)
+```
+
+The shortest distance is about 108 m and the longest is about 41.4 km. Half of the pairs are within about 12 km.
+
+## 18.7 Computing Huff model
+
+`huff.shares()` gives `p_ij`. This is the probability that people in village i go to store j. For each village, the probabilities of all stores add up to 1.
+
+```{r}
+#| label: chapter-18-demo-22
+huff_share <- huff.shares(
+  interaction_matrix, "VILLCODE", "Store_CD",
+  "Store_size", "distance")
+```
+
+```{r}
+#| label: chapter-18-sum-check
+huff_share %>%
+  group_by(VILLCODE) %>%
+  summarise(total_p = sum(p_ij)) %>%
+  summarise(min_total = min(total_p),
+            max_total = max(total_p))
+```
+
+Both values are 1, so the probabilities are correct.
+
+### 18.7.1 Trade area analysis for a single store
+
+I pick one store, with store code `BT`, and keep its probabilities.
+
+```{r}
+#| label: chapter-18-demo-23
+market_share <- huff_share %>%
+  filter(Store_CD == "BT")
+```
+
+Then I join them to the villages to get the trade area.
+
+```{r}
+#| label: chapter-18-demo-24
+Trade_area <- village %>%
+  left_join(market_share)
+```
+
+I also extract the store point, so I can show it on the map.
+
+```{r}
+#| label: chapter-18-demo-25
+selected_store <- stores %>%
+  filter(Store_CD == "BT")
+```
+
+The map uses 10 quantile classes. Darker blue means people in that village are more likely to go to store BT. The red dot is the store.
+
+```{r}
+#| label: chapter-18-demo-26
+#| fig-height: 7
+tm_shape(Trade_area) +
+  tm_polygons(fill = "p_ij",
+              fill.scale = tm_scale_intervals(
+                style = "quantile",
+                n = 10,
+                values = "brewer.blues"),
+              fill.legend = tm_legend(
+                title = "Patronage Probability")) +
+  tm_shape(selected_store) +
+    tm_dots(size = 0.3,
+            fill = "red",
+            col = "black") +
+  tm_title("Distribution of Patronage Probability of Store BT by village") +
+  tm_layout(frame = TRUE) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_compass(type = "8star", size = 2) +
+  tm_scalebar() +
+  tm_grid(alpha = 0.2)
+```
+
+The probabilities range from 0 to 0.944. The darkest villages are right around store BT in central Taichung, where most people are expected to go to BT. The probability stays fairly high to the east, because there are few other stores there. To the west and south-west it drops fast, because those villages are closer to other stores.
+
+### 18.7.2 Store sales analysis
+
+The Huff model can also estimate store sales. The idea is simple. Each village sends its people to the stores by the probabilities. Adding up the people for each store gives its estimated customers.
+
+First, I add the village population (`P_CNT`) to `huff_share`.
+
+```{r}
+#| label: chapter-18-demo-27
+huff_share_pp <- huff_share %>%
+  left_join(village %>%
+      st_drop_geometry() %>%
+      select(VILLCODE, P_CNT),
+    by = "VILLCODE") %>%
+  relocate(
+    distance, .after = last_col())
+```
+
+`shares.total()` adds up the expected customers for each store.
+
+```{r}
+#| label: chapter-18-demo-28
+huff_total <- shares.total(
+  huff_share_pp, "VILLCODE", "Store_CD",
+  "p_ij", "P_CNT")
+```
+
+I join the estimate (`sum_E_j`) back to the stores.
+
+```{r}
+#| label: chapter-18-demo-29
+store_sales_est <- stores %>%
+  left_join(huff_total,
+            by = join_by(
+              "Store_CD" == "suppliers_single"))
+```
+
+Now I compare the estimate with the actual sales. If the model works well, the points follow a line and the correlation is high.
+
+```{r}
+#| label: chapter-18-demo-30
+store_sales_nongeom <- store_sales_est %>%
+  st_drop_geometry()
+
+ggscatterstats(
+  store_sales_nongeom,
+  x = sum_E_j,
+  y = Total_Sales)
+```
+
+The Pearson correlation is 0.58 (95% CI 0.26 to 0.78, p = 0.001, 28 stores). This is a moderate positive link. Stores with more expected customers do tend to sell more, but many points are far from the line. For example, some stores with about 90,000 to 100,000 expected customers sell less than 2.5 million, while others with similar values sell almost 7 million.
+
+The last step turns `huff_share` into a wide table. Each row is a village and each column is a store.
+
+```{r}
+#| label: chapter-18-demo-31
+huff_share_wider <- huff_share %>%
+  select(VILLCODE, Store_CD, p_ij) %>%
+  pivot_wider(names_from = Store_CD,
+              values_from = p_ij)
+```
+
+```{r}
+#| label: chapter-18-demo-32
+dim(huff_share_wider)
+```
+
+The table has 617 rows (villages) and 29 columns (`VILLCODE` and 28 stores).
+
+## My Conclusion
+
+The Huff model gives each of the 617 villages a probability for each of the 28 stores. Every store has the same size (100), so the result depends only on distance and competition. The map of store BT shows this clearly. Villages next to BT have probabilities up to 0.944, while villages near other stores have almost 0.
+
+The estimated customers and the actual sales have a correlation of 0.58. The model explains part of the sales pattern, but not all of it. This is expected, because the model only knows where people live and how far the stores are.
+
+The model could be better in three ways:
+
+-   Use a real attractiveness value, such as floor area or seats, instead of a constant 100.
+-   Use travel time on the road network, instead of straight-line distance.
+-   Include people who are not at home, such as workers and shoppers in the city centre. Population by home address misses them.
