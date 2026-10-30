@@ -13,7 +13,9 @@ shan_sf <- read_rds("data/chap12/rds/shan_sf.rds")
 ```
 
 ```{r}
-queen_w <- queen_weights(shan_sf)
+# A small tolerance joins townships separated only by tiny boundary gaps.
+# Without it rgeoda finds an isolate, and schc()/skater()/redcap() crash R.
+queen_w <- queen_weights(shan_sf, precision_threshold = 1e-6)
 summary(queen_w)
 ```
 
