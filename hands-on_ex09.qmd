@@ -288,7 +288,7 @@ tm_shape(condo_resale.sf) +
 tmap_mode("plot")
 ```
 
-The most expensive units are mostly in the central area, around Orchard, Newton and the Bukit Timah side. Units in the east and north are cheaper.
+I can zoom in and click on each point to see its price. The condos are not spread evenly. They cluster in the central area, along the east coast and in a few towns in the west and north.
 
 ## 13.8 Hedonic Pricing Modelling in R
 
@@ -495,7 +495,7 @@ tm_shape(condo_resale.sf) +
   tm_layout(legend.outside = TRUE)
 ```
 
-Points of the same colour sit together, so there is a sign of spatial autocorrelation. I confirm this with a Global Moran's I test.
+Points of the same colour sit together, so there is a sign of spatial autocorrelation. For example, many large positive residuals (dark red) are packed in the central area, so OLS under-predicts prices there. Groups of large negative residuals (dark blue) appear in the south-west and in parts of the east. I confirm this with a Global Moran's I test.
 
 I build distance-band neighbours with `st_dist_band()`. Two condos are neighbours if they are within 1,500 m. The weights are row-standardised.
 
@@ -662,7 +662,7 @@ tibble(
                    gwr.adaptive$GW.diagnostic$gwR2.adj), 3))
 ```
 
-Both GWR models have a much lower AICc and a much higher R-squared than OLS. The adaptive model has the lowest AICc and the highest adjusted R-squared, so I use it for the maps below.
+Both GWR models are much better than OLS. The AICc falls from 42,967 (OLS) to 42,264 (fixed) and 41,982 (adaptive). The adjusted R-squared rises from 0.647 to 0.843 and 0.856. The adaptive model has the lowest AICc and the highest adjusted R-squared, so I use it for the maps below.
 
 ### 13.9.4 Visualising GWR Output
 
@@ -701,6 +701,8 @@ The fitted prices range from about 0.17 million to 13.9 million. Their median (a
 summary(condo_resale.sf.adaptive$Local_R2)
 ```
 
+Local R2 ranges from 0.67 to 0.99, with a median of 0.91. So the local models fit well almost everywhere.
+
 The chapter shows Local R2 on an interactive map. I draw it as a static map, which is easier to compare across areas and keeps the page light.
 
 ```{r}
@@ -719,6 +721,8 @@ tm_shape(condo_resale.sf.adaptive) +
   tm_title("Local R2 of the adaptive GWR model") +
   tm_layout(frame = TRUE)
 ```
+
+The lowest Local R2 values (yellow, 0.67 to 0.86) are in the central area and the city fringe. Prices there vary a lot between nearby condos, so the 14 variables explain less. The highest values (dark blue, above 0.96) are in the north, the west and the far east, where condos nearby are more alike.
 
 ### 13.9.7 Visualising coefficient estimates
 
@@ -753,7 +757,7 @@ tmap_arrange(AREA_SQM_SE, AREA_SQM_TV,
 mean(condo_resale.sf.adaptive$AREA_SQM_TV > 1.96)
 ```
 
-This is the share of condos where a bigger floor area has a significant positive effect on price.
+At 95.8% of the condos, a bigger floor area has a significant positive effect on price. The t-values range from 1.17 to 42.6. They are highest in the central area, where the standard errors are also the smallest. So floor area matters most, and is estimated most precisely, in the city centre. In a few places in the north and west the t-value is below 1.96, so floor area is not significant there.
 
 ### 13.9.8 Do the GWR residuals still cluster?
 
@@ -770,12 +774,14 @@ global_moran_perm(
   nsim = 499)
 ```
 
-If Moran's I is now much closer to 0, GWR has captured most of the spatial pattern that OLS missed.
+Moran's I falls from 0.144 for the OLS residuals to -0.016 for the GWR residuals. The p-value (0.024) is still below 0.05, but the value is very close to 0. So the strong clustering in the OLS residuals is gone. GWR has captured most of the spatial pattern that OLS missed.
 
 ## My Conclusion
 
-The OLS hedonic model explains about 65% of the variation in condo resale prices. Floor area, age, distance to the CBD and to the MRT, and freehold tenure all matter. But the OLS residuals are clustered in space (Moran's I about 0.144, p \< 0.05). So one global coefficient per variable is not enough for Singapore.
+The OLS hedonic model explains about 65% of the variation in condo resale prices. Floor area, age, distance to the CBD and to the MRT, and freehold tenure all matter. But the OLS residuals are clustered in space (Moran's I = 0.144, p \< 0.05). So one global coefficient per variable is not enough for Singapore.
 
-GWR lets each coefficient change across space. The fixed GWR lowers the AICc from about 42,967 to 42,264, and the adaptive GWR (30 neighbours) lowers it further to 41,982. The R-squared rises from 0.65 to about 0.89. The adaptive bandwidth works better because condos are dense in some areas and sparse in others.
+GWR lets each coefficient change across space. The fixed GWR (971 m) lowers the AICc from 42,967 to 42,264, and the adaptive GWR (30 neighbours) lowers it further to 41,982. The adjusted R-squared rises from 0.647 to 0.856. The adaptive bandwidth works better because condos are dense in some areas and sparse in others. After GWR, Moran's I of the residuals is only -0.016, so the spatial clustering that OLS left behind is mostly gone.
+
+The maps show that the relationships are not the same everywhere. Floor area has a significant positive effect at 95.8% of the condos, and the effect is strongest in the city centre. Local R2 has a median of 0.91 and never drops below 0.67, but it is lowest in the central area and the city fringe.
 
 Two points need care. First, some local coefficients have extreme values (for example, the local intercept ranges from about -135 million to 19 million). These come from places with few or very similar condos, so they should not be read on their own. Second, GWR improves the fit, but it does not explain why the effects change. The maps show where to look, and the next step would be to add the missing local factors.
