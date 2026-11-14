@@ -1,0 +1,8 @@
+model,term,estimate
+Huff,log_distance,-0.728472316770368
+Huff,log_bus,0.662020419785219
+MCI,log_distance,-0.723723373719301
+MCI,log_bus,0.424585649804105
+MCI,log_lines,1.0288777502486
+MCI,log_hdb,0.203232844125888
+MCI,is_lrt,-1.93601893175094

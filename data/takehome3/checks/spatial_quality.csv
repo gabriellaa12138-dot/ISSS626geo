@@ -1,0 +1,5 @@
+layer,features,empty,invalid,source_crs,transformed_epsg,invalid_after_repair,geometry_types
+train_stations,234,0,0,SVY21,3414,0,MULTIPOLYGON
+bus_stops,5205,0,0,SVY21,3414,0,POINT
+station_exits,613,0,0,SVY21,3414,0,POINT
+hdb_buildings,13436,0,4,WGS 84,3414,0,MULTIPOLYGON

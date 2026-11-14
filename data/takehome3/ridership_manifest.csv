@@ -1,0 +1,7 @@
+"dataset","month","file","rows","columns","bytes","md5","source","requested_month","retrieved_at"
+"station_volume","2026-10","raw/ridership/transport_node_train_202610.csv",7380,7,330581,"d9a084c1c73bb80075d05ee0077ee713","https://datamall2.mytransport.sg/ltaodataservice/PV/Train","202610","2026-11-14 16:58:25 +08"
+"origin_destination","2026-10","raw/ridership/origin_destination_train_202610.csv",910115,7,38993477,"acd11e49e98d7fa7b2ae894782148d12","https://datamall2.mytransport.sg/ltaodataservice/PV/ODTrain","202610","2026-11-14 16:58:26 +08"
+"station_volume","2026-09","raw/ridership/transport_node_train_202609.csv",7376,7,329635,"6b28e515622b2d7eba971f94236e6d36","https://datamall2.mytransport.sg/ltaodataservice/PV/Train","202609","2026-11-14 16:58:28 +08"
+"origin_destination","2026-09","raw/ridership/origin_destination_train_202609.csv",887478,7,37984710,"c4b6678c21a3cc1f27796104adde9616","https://datamall2.mytransport.sg/ltaodataservice/PV/ODTrain","202609","2026-11-14 16:58:29 +08"
+"station_volume","2026-08","raw/ridership/transport_node_train_202608.csv",7379,7,330758,"67fbcae66d303ff93d587400d1d4b539","https://datamall2.mytransport.sg/ltaodataservice/PV/Train","202608","2026-11-14 16:58:30 +08"
+"origin_destination","2026-08","raw/ridership/origin_destination_train_202608.csv",906985,7,38961151,"710178e3849cdfcee664ed44bff78640","https://datamall2.mytransport.sg/ltaodataservice/PV/ODTrain","202608","2026-11-14 16:58:32 +08"

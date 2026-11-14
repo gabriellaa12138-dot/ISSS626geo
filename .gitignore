@@ -10,3 +10,20 @@
 
 # ACLED terms of use: do not redistribute the raw event file
 data/takehome2/aspatial/ACLED_Data_Myanmar_Jan2021-Sep2025.csv
+
+# Rebuildable Chapter 14 model objects and execution caches
+data/chap14/model/
+hands-on_ex10_cache/
+
+# Local credentials and redundant downloaded archives
+.Renviron
+.env
+.env.local
+data/takehome3/archives/
+data/takehome3/**/*.partial
+
+# Keep lossless compressed input snapshots; rebuild the large working copies locally.
+data/takehome3/raw/ridership/origin_destination_train_*.csv
+data/takehome3/raw/housing/hdb_existing_buildings.geojson
+data/takehome3/prepared/hdb_buildings_valid_3414.gpkg
+data/takehome3/results/*.rds

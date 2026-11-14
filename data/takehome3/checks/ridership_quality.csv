@@ -1,0 +1,4 @@
+month,station_rows,od_rows,station_codes,od_origins,od_destinations,missing_cells,duplicate_keys,negative_volumes
+2026-08,7379,906985,185,185,185,0,0,0
+2026-09,7376,887478,185,185,185,0,0,0
+2026-10,7380,910115,185,185,185,0,0,0

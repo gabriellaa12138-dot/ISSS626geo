@@ -1,0 +1,186 @@
+station_id,station_name,longitude,latitude,matched_component_codes,unmatched_component_codes,coordinate_source_list,within_group_coordinate_span_m,status_evidence
+BP10,Fajar,103.770837955959,1.38453267847594,BP10,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP11,Segar,103.769659653829,1.38775640801968,BP11,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP12,Jelapang,103.764500579689,1.38669667683512,BP12,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP13,Senja,103.762368754142,1.38269924256304,BP13,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP2,South View,103.74529179983,1.38029828626184,BP2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP3,Keat Hong,103.749051503885,1.37861216681425,BP3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP4,Teck Whye,103.75369963153,1.37665929345524,BP4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP5,Phoenix,103.758033623077,1.37862494929195,BP5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP6/DT1,Bukit Panjang,103.76235265976,1.37848546937523,BP6;DT1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP7,Petir,103.766667275872,1.37775498685429,BP7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP8,Pending,103.77127975033,1.37612653817926,BP8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+BP9,Bangkit,103.772661219079,1.38001549422265,BP9,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC10/DT26,MacPherson,103.889816612191,1.32622932889565,CC10;DT26,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC11,Tai Seng,103.888164475755,1.33545310334663,CC11,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC12,Bartley,103.87972518719,1.3428468439645,CC12,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC14,Lorong Chuan,103.864144126584,1.35161975585995,CC14,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC16,Marymount,103.839410180866,1.34877805533846,CC16,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC17/TE9,Caldecott,103.839865385708,1.33753876777915,CC17;TE9,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC19/DT9,Botanic Gardens,103.815618604431,1.32225560322901,CC19;DT9,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC2,Bras Basah,103.850658808584,1.29683005011376,CC2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC20,Farrer Road,103.807489124562,1.31745457083234,CC20,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC21,Holland Village,103.796233336012,1.31194561751509,CC21,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC23,one-north,103.787391379253,1.29965145731134,CC23,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC24,Kent Ridge,103.784497938352,1.29340093814385,CC24,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC25,Haw Par Villa,103.78182132863,1.28250290223001,CC25,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC26,Pasir Panjang,103.791341965737,1.27622967023719,CC26,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC27,Labrador Park,103.802927704769,1.27232349429579,CC27,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC28,Telok Blangah,103.809739740652,1.27058178901073,CC28,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC3,Esplanade,103.855614268864,1.29327230263975,CC3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC30,Keppel,103.830295941841,1.27017195391987,CC30,"",future,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC31,Cantonment,103.836740250312,1.2730817331802,CC31,"",future,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC32,Prince Edward Road,103.847265636535,1.27324072803102,CC32,"",future,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC34/DT16,Bayfront,103.859075141778,1.28187224313828,DT16,CC34,operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC4/DT15,Promenade,103.860947568566,1.29314390100392,CC4;DT15,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC5,Nicoll Highway,103.863633137847,1.29980282985234,CC5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC6,Stadium,103.875347964007,1.30285409989993,CC6,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC7,Mountbatten,103.882547015098,1.30619378692898,CC7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC8,Dakota,103.888668299519,1.30837515463743,CC8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CG1/DT35,Expo,103.961963415967,1.33489804881774,CG1;DT35,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+CG2,Changi Airport,103.988348149094,1.35731895761831,CG2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT10,Stevens,103.825833416355,1.31990067999272,DT10,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT13,Rochor,103.852439962592,1.3039277778521,DT13,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT17,Downtown,103.852842167459,1.27944195308525,DT17,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT18,Telok Ayer,103.848323422372,1.28228048763086,DT18,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT2,Cashew,103.764699340648,1.36936636974567,DT2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT20,Fort Canning,103.844289100268,1.2924032346995,DT20,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT21,Bencoolen,103.850260019611,1.29873835037128,DT21,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT22,Jalan Besar,103.855428749705,1.30537670263359,DT22,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT23,Bendemeer,103.862969300455,1.31365959228479,DT23,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT24,Geylang Bahru,103.87190108504,1.32151039243527,DT24,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT25,Mattar,103.883253059861,1.32686568218318,DT25,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT27,Ubi,103.89924886684,1.32995526448548,DT27,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT28,Kaki Bukit,103.908455157892,1.33496297866567,DT28,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT29,Bedok North,103.917876722647,1.33475563406436,DT29,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT3,Hillview,103.767422815662,1.3623368098085,DT3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT30,Bedok Reservoir,103.932287547197,1.3365987355758,DT30,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT31,Tampines West,103.938434048549,1.34551431834599,DT31,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT33,Tampines East,103.954858137499,1.35621238518815,DT33,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT34,Upper Changi,103.961473244124,1.34174037733621,DT34,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT4,Hume,103.769103928971,1.35451083553743,DT4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT5,Beauty World,103.77579158432,1.34122696125556,DT5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT6,King Albert Park,103.783084189372,1.33474175349797,DT6,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT7,Sixth Avenue,103.79726347741,1.33080154613958,DT7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+DT8,Tan Kah Kee,103.807331039747,1.3258724508086,DT8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW1,Pasir Ris,103.949334302679,1.37200981910204,EW1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW10,Kallang,103.871312360904,1.31141234564968,EW10,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW11,Lavender,103.862837801549,1.30737173057256,EW11,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW12/DT14,Bugis,103.856268651132,1.29999751248487,DT14;EW12,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW14/NS26,Raffles Place,103.851459315399,1.28406727098931,EW14;NS26,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW15,Tanjong Pagar,103.846013187304,1.27663115082271,EW15,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW16/NE3/TE17,Outram Park,103.839250014115,1.28083893466993,EW16;NE3;TE17,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW17,Tiong Bahru,103.827034340444,1.28621974033273,EW17,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW18,Redhill,103.816773194128,1.28963027096248,EW18,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW19,Queenstown,103.806045236724,1.29461133180181,EW19,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW2/DT32,Tampines,103.944089916063,1.35422054768399,DT32;EW2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW20,Commonwealth,103.798290719291,1.30244764594495,EW20,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW21/CC22,Buona Vista,103.790287471302,1.30687101222808,CC22;EW21,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW22,Dover,103.778649154991,1.31139469009712,EW22,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW23,Clementi,103.765603945937,1.31593146672016,EW23,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW24/NS1,Jurong East,103.742107481823,1.33305028467978,EW24;NS1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW25,Chinese Garden,103.732814394059,1.34214497629575,EW25,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW26,Lakeside,103.720966820179,1.34426381556647,EW26,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW27,Boon Lay,103.705319900316,1.33835623904126,EW27,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW28,Pioneer,103.697415225282,1.33759509725282,EW28,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW29,Joo Koon,103.678286179165,1.32774494226868,EW29,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW3,Simei,103.953377118299,1.34319743979545,EW3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW30,Gul Circle,103.66073679408,1.31970325921308,EW30,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW31,Tuas Crescent,103.648965257371,1.32113835956675,EW31,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW32,Tuas West Road,103.639573097216,1.33003712700424,EW32,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW33,Tuas Link,103.636751323734,1.34027040649573,EW33,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW4,Tanah Merah,103.946547943676,1.32725408177775,EW4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW5,Bedok,103.930172519864,1.32401131892467,EW5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW6,Kembangan,103.912947429592,1.32103801456369,EW6,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW7,Eunos,103.903255587307,1.31976111733923,EW7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW8/CC9,Paya Lebar,103.8926706888,1.31774321411867,CC9;EW8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+EW9,Aljunied,103.882904528691,1.31643349469534,EW9,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE1/CC29,HarbourFront,103.821507408085,1.26531069162647,CC29;NE1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE10,Potong Pasir,103.869069958285,1.33138738923065,NE10,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE11,Woodleigh,103.870791689861,1.33916076973892,NE11,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE12/CC13,Serangoon,103.873048853515,1.35007414777144,CC13;NE12,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE13,Kovan,103.885091115971,1.3601798707281,NE13,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE14,Hougang,103.891748639522,1.37121513084043,NE14,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE15,Buangkok,103.893092468812,1.38277158377718,NE15,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE16/STC,Sengkang,103.895426169891,1.39155106200077,NE16;STC,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE17/PTC,Punggol,103.902403956605,1.40516544279501,NE17;PTC,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE18,Punggol Coast,103.910214245309,1.41493881816166,NE18,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE4/DT19,Chinatown,103.844003596908,1.28449798919314,DT19;NE4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE5,Clarke Quay,103.846644812715,1.28860573089023,NE5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE7/DT12,Little India,103.84927785172,1.3071641923108,DT12;NE7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE8,Farrer Park,103.854270158413,1.31244822832938,NE8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NE9,Boon Keng,103.861681085442,1.31944709003202,NE9,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS10,Admiralty,103.800975105742,1.44058870999027,NS10,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS11,Sembawang,103.82018789692,1.44906746189767,NS11,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS12,Canberra,103.82953968336,1.44323459010964,NS12,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS13,Yishun,103.834972648604,1.42957224388173,NS13,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS14,Khatib,103.833038091494,1.41757538109799,NS14,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS15,Yio Chu Kang,103.844806938492,1.38175349683186,NS15,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS16,Ang Mo Kio,103.850251423105,1.36967252535559,NS16,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS17/CC15,Bishan,103.848682434297,1.35104848227519,CC15;NS17,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS18,Braddell,103.846795335838,1.34035746301408,NS18,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS19,Toa Payoh,103.847445207186,1.33266799224784,NS19,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS2,Bukit Batok,103.74954069135,1.34899674906887,NS2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS20,Novena,103.843818130602,1.32043008149326,NS20,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS21/DT11,Newton,103.838034772111,1.31291179665637,DT11;NS21,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS23,Somerset,103.839075162202,1.30026005458353,NS23,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS24/NE6/CC1,Dhoby Ghaut,103.845811719027,1.29914896153705,CC1;NE6;NS24,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS25/EW13,City Hall,103.852607770996,1.29293545813133,EW13;NS25,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS27/CC33/TE20,Marina Bay,103.854981665447,1.2758094294533,NS27;TE20,CC33,operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS28,Marina South Pier,103.862910893008,1.27137738120154,NS28,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS3,Bukit Gombak,103.751910108998,1.35867192160982,NS3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS4/BP1,Choa Chu Kang,103.744344088931,1.38512546803665,BP1;NS4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS5,Yew Tee,103.747402093037,1.39754963346908,NS5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS7,Kranji,103.762058954942,1.42518923146955,NS7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS8,Marsiling,103.774042813227,1.4325784529165,NS8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS9/TE2,Woodlands,103.787055273894,1.43644868787257,NS9;TE2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PE1,Cove,103.905917440303,1.39936170686857,PE1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PE2,Meridian,103.908990938413,1.39685233916053,PE2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PE3,Coral Edge,103.912563534868,1.39392635043445,PE3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PE4,Riviera,103.915932425213,1.39535817202377,PE4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PE5,Kadaloor,103.916394978901,1.39963850966689,PE5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PE6,Oasis,103.912631851453,1.40235087989166,PE6,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PE7,Damai,103.908503577561,1.40531602212021,PE7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PW1,Sam Kee,103.904831551442,1.40961268692382,PW1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PW2,Teck Lee,103.906626211844,1.41287387053794,PW2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PW3,Punggol Point,103.906535511585,1.41691085265094,PW3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PW4,Samudera,103.902087242609,1.41581869774095,PW4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PW5,Nibong,103.900298948479,1.41175558620846,PW5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PW6,Sumang,103.898510286704,1.40835329666872,PW6,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+PW7,Soo Teck,103.897234408855,1.40520964761987,PW7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SE1,Compassvale,103.900555277825,1.394478783451,SE1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SE2,Rumbia,103.905890482926,1.39156444499096,SE2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SE3,Bakau,103.905526346909,1.38810501595154,SE3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SE4,Kangkar,103.902257550892,1.38403076730315,SE4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SE5,Ranggung,103.897492603437,1.38392147951816,SE5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW1,Cheng Lim,103.893907907803,1.39624891605227,SW1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW2,Farmway,103.889382861207,1.3971619025464,SW2,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW3,Kupang,103.881374283059,1.39819757807163,SW3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW4,Thanggam,103.875655371716,1.39743699371803,SW4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW5,Fernvale,103.876279656945,1.39194419265805,SW5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW6,Layar,103.880157875511,1.3920928721401,SW6,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW7,Tongkang,103.885937358593,1.38933878091467,SW7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+SW8,Renjong,103.8904287885,1.38674751290688,SW8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE1,Woodlands North,103.78596634245,1.44839231996831,TE1,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE11,Stevens,103.825833416355,1.31990067999272,TE11,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE12,Napier,103.819082773435,1.30666565128115,TE12,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE13,Orchard Boulevard,103.823847635772,1.30266610948476,TE13,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE14/NS22,Orchard,103.831874167731,1.30344464630423,NS22;TE14,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE15,Great World,103.833426457899,1.29446783788513,TE15,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE16,Havelock,103.833589780096,1.28844196580755,TE16,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE18,Maxwell,103.843924368575,1.28059640981549,TE18,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE19,Shenton Way,103.850675104518,1.27759051710467,TE19,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE22,Gardens by the Bay,103.867954883189,1.27920046985637,TE22,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE23,Tanjong Rhu,103.873455018893,1.29724528744371,TE23,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE24,Katong Park,103.886236365314,1.29780104156287,TE24,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE25,Tanjong Katong,103.897448850453,1.2993705596361,TE25,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE26,Marine Parade,103.90550807454,1.30286599302108,TE26,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE27,Marine Terrace,103.915265584618,1.30676742400278,TE27,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE28,Siglap,103.929917048052,1.3098814892597,TE28,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE29,Bayshore,103.94184163653,1.31293649446276,TE29,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE3,Woodlands South,103.793897946771,1.42711515321566,TE3,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE4,Springleaf,103.817921140757,1.39814097825668,TE4,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE5,Lentor,103.836339887874,1.38494450801938,TE5,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE6,Mayflower,103.836781520296,1.37210813861462,TE6,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE7,Bright Hill,103.834472496834,1.36328178427458,TE7,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+TE8,Upper Thomson,103.832859665454,1.35442900031296,TE8,"",operational,0,Observed in LTA ridership; not inferred from the coordinate list label

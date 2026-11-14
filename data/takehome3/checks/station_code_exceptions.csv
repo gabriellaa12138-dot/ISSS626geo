@@ -1,0 +1,6 @@
+station_id,station_name,longitude,latitude,matched_component_codes,unmatched_component_codes,coordinate_source_list,within_group_coordinate_span_m,status_evidence
+CC30,Keppel,103.830295941841,1.27017195391987,CC30,"",future,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC31,Cantonment,103.836740250312,1.2730817331802,CC31,"",future,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC32,Prince Edward Road,103.847265636535,1.27324072803102,CC32,"",future,0,Observed in LTA ridership; not inferred from the coordinate list label
+CC34/DT16,Bayfront,103.859075141778,1.28187224313828,DT16,CC34,operational,0,Observed in LTA ridership; not inferred from the coordinate list label
+NS27/CC33/TE20,Marina Bay,103.854981665447,1.2758094294533,NS27;TE20,CC33,operational,0,Observed in LTA ridership; not inferred from the coordinate list label
