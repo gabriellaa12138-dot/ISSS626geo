@@ -1,0 +1,35 @@
+.reveal {
+  --r-main-font: Arial, Helvetica, sans-serif;
+  --r-heading-font: Arial, Helvetica, sans-serif;
+  --r-main-font-size: 28px;
+  --r-main-color: #26362f;
+  --r-heading-color: #17483d;
+  --r-link-color: #146b62;
+  --r-heading1-size: 2.1em;
+  --r-heading2-size: 1.5em;
+  --r-heading-text-transform: none;
+  --r-heading-letter-spacing: 0;
+}
+
+.reveal .slides { text-align: left; }
+.reveal .slides section { line-height: 1.28; }
+.reveal h2 { margin-bottom: 24px; border-bottom: 3px solid #19816c; padding-bottom: 12px; }
+.reveal p { margin: 18px 0; }
+.reveal li { margin-bottom: 16px; }
+.reveal strong { color: #99425d; }
+.reveal .columns { gap: 3%; align-items: flex-start; }
+.reveal table { font-size: 0.9em; margin: 16px 0 28px; }
+.reveal table th { border-bottom: 2px solid #19816c; }
+.reveal .cell-output-display img { width: 100%; height: auto; max-width: 100%; max-height: 580px; object-fit: contain; margin: 0 auto; }
+.reveal .cell { margin: 0; }
+.reveal .cell-output-display p { margin: 0; }
+.reveal .footer { font-size: 16px; color: #68746e; }
+.reveal .slide-number { font-size: 17px; }
+.reveal #title-slide { padding-top: 170px; text-align: left; }
+.reveal #title-slide h1 { color: white; margin-bottom: 36px; max-width: 1250px; }
+.reveal #title-slide .subtitle { color: #e7eee9; font-size: 1.2em; max-width: 1150px; }
+.reveal #title-slide .quarto-title-author-name, .reveal #title-slide .date { color: #e7eee9; }
+.reveal #title-slide .quarto-title-authors { justify-content: flex-start; }
+.reveal #title-slide .quarto-title-author { text-align: left; padding: 0; }
+.reveal .caption { font-size: 20px; color: #596a60; margin-top: 12px; }
+.reveal .slides section .math { font-size: 0.86em; }

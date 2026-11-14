@@ -41,11 +41,12 @@ This choice makes the observed flows directly available for calibration. It also
 
 ## Reproducible setup
 
-The script below contains the full preparation and modelling functions. The report runs those functions from the raw data on every render. Source code is also displayed in the appendix. It does not call the live LTA API during rendering or require a secret key.
+The script below contains the full preparation and modelling functions. The report runs those functions from the raw data on every render. The R scripts remain in the project for inspection and reuse. Rendering does not call the live LTA API or require a secret key.
 
 ```{r}
 #| label: th3-setup
-source("scripts/takehome3_analysis.R")
+source("scripts/takehome3_extensions.R")
+source("scripts/takehome3_figures.R")
 library(patchwork)
 library(leaflet)
 library(knitr)
@@ -60,8 +61,12 @@ pct <- function(x) sprintf("%.1f%%", 100 * x)
 
 analysis <- th3_prepare()
 models <- th3_fit_models(analysis)
-saveRDS(list(data = analysis, models = models),
-        "data/takehome3/results/stage1_results.rds", compress = "xz")
+extensions <- th3_extend(analysis, models)
+res <- th3_save_results(analysis, models, extensions)
+access800 <- extensions$access_summary[radius_m == 800]
+main_scenario <- extensions$scenario$stations
+largest_gain <- main_scenario[new_site == FALSE][which.max(change)]
+largest_loss <- main_scenario[new_site == FALSE][which.min(change)]
 test_score <- models$metrics[model == models$selected & period == "October test"]
 historical_score <- models$metrics[model == "Historical OD benchmark" & period == "October test"]
 outline <- st_union(analysis$land)
@@ -83,7 +88,7 @@ outline <- st_union(analysis$land)
 
 The downloaded HDB property table is retained but is not joined on block number alone. Its street names do not match the polygon file's street codes. Leaving this join unresolved is preferable to attaching the wrong household count to a building. The model uses a clearly labelled footprint variable instead.
 
-[Data sources and download instructions](data/takehome3/README.md) accompany the project. The manifests retain exact file checksums. Compressed source snapshots are expanded and checked automatically when the uncompressed copies are absent.
+The source manifests in the project retain official URLs, retrieval dates and exact file checksums. Compressed source snapshots are expanded and checked automatically when the uncompressed copies are absent.
 
 ### File and geometry checks
 
@@ -417,13 +422,203 @@ leaflet(interactive, height = 520) |>
 
 This map uses the same October results as the static residual map. The popup gives the observed value, conditional estimate and error together. It is an inspection aid, not another independent validation.
 
-## Findings at this checkpoint
+## Future network scenario
 
-The data support a consistent origin constrained choice model after station identities are reconciled. The model tables preserve all eligible choices, observed zero flows, projected distances and measurable attraction variables. The selected structural model improves on default Huff but remains much less accurate than the historical OD pattern for existing stations.
+### A common demand total for both networks
 
-That gap matters for the next step. New station projections should be presented as conditional scenarios with explicit uncertainty and comparison against the existing network, not as precise future passenger counts. Existing interchange upgrades must be treated separately from wholly new sites. Any discussion of new housing demand needs an additional demand assumption rather than a hidden increase in the current origin totals.
+I apply the August coefficients to two choice sets: 184 existing destinations and 213 destinations after the proposed additions. Both use October's outgoing weekday trips from the same existing origins. The seven interchange sites gain one line. Bus access and HDB footprint remain at their observed levels.
 
-The next checkpoint will add the JRL and CRL predictions, changes at existing stations, market allocation maps, the additional spatial robustness analysis and the executive summary. The final version will replace this checkpoint notice and include planning conclusions supported by those results.
+This is a comparison under fixed demand, not an opening year forecast. It excludes future origin boardings, new housing, changed bus services and induced rail travel. Each station's change is **future model estimate minus baseline model estimate**, not future estimate minus observed October ridership. This keeps the model's existing errors separate from the scenario effect.
+
+```{r}
+#| label: th3-future-accounting
+scenario_summary <- main_scenario[, .(baseline = sum(baseline),
+  future = sum(future), change = sum(change)), by = scenario_group]
+kable(scenario_summary, digits = 0, caption = "Monthly weekday destination arrivals under fixed October origin totals")
+stopifnot(abs(sum(main_scenario$change)) < 1e-5)
+```
+
+The new physical sites receive `r pct(sum(main_scenario$future[main_scenario$new_site]) / sum(main_scenario$future))` of the fixed demand, or about `r fmt(sum(main_scenario$future[main_scenario$new_site]))` monthly arrivals. Existing interchanges gain in aggregate, while other existing destinations lose allocation. The network total stays at `r fmt(sum(main_scenario$future))`. These are redistributed trips, not additional passengers attracted to public transport.
+
+```{r}
+#| label: th3-future-map
+#| fig-width: 12
+#| fig-height: 4.5
+#| fig-cap: "Baseline and expanded model estimates use the same demand total and symbol scale. The third map shows their difference."
+th3_plot_scenario(res)
+```
+
+The western new sites account for about `r fmt(scenario_summary[scenario_group == "JRL original 24", future])` allocated arrivals, compared with `r fmt(scenario_summary[scenario_group == "CRL Phase 1", future])` at the new CRL sites. This comparison excludes the seven upgraded existing stations. It also reflects the different numbers and attributes of new sites, not a direct comparison of the two lines' total patronage.
+
+### Changes at individual stations
+
+```{r}
+#| label: th3-future-ranking
+#| fig-height: 5.5
+#| fig-cap: "Changes at existing destinations and the ten largest new destination allocations. All values are monthly weekday arrivals."
+th3_plot_impacts(res)
+```
+
+`r largest_gain$station_name` has the largest estimated existing station gain, about `r fmt(largest_gain$change)` arrivals. `r largest_loss$station_name` has the largest decline, about `r fmt(-largest_loss$change)`. These rankings reflect the fitted attraction formula. In particular, interchange gains depend on the line count coefficient and do not directly measure transfer demand or platform crowding.
+
+```{r}
+#| label: th3-future-results-table
+prediction_table <- main_scenario[order(-future), .(station_name, scenario_group,
+  baseline = round(baseline), future = round(future), change = round(change),
+  change_pct = round(change_pct, 1))]
+DT::datatable(prediction_table, rownames = FALSE,
+  caption = "All 213 destination estimates. Baseline is zero at new sites, so percentage change is undefined.",
+  options = list(pageLength = 10, scrollX = TRUE))
+```
+
+### Where station markets change
+
+Here a market is the allocation of trips from existing origin stations. I map the share assigned to all new sites and then examine the market of one existing destination. This is a discrete origin market, not a residential walking catchment or a new administrative boundary.
+
+```{r}
+#| label: th3-market-shares
+#| fig-height: 5
+#| fig-cap: "Probability assigned to new destinations from each existing origin, with the ten largest shares."
+th3_plot_markets(res)
+```
+
+The highest probability destination changes at `r sum(extensions$market$changed)` of the 184 origins. That count is a summary of the model, not a count of passengers changing journeys. The probabilities retain the full distribution of choices, so an origin can allocate trips to several new destinations even when its most likely destination stays the same.
+
+```{r}
+#| label: th3-existing-market
+#| fig-width: 12
+#| fig-height: 4.5
+#| fig-cap: "The market of the existing station with the largest absolute allocation decline. The first two panels share the same probability scale."
+th3_plot_focus(res)
+```
+
+The maps show how `r largest_loss$station_name` loses probability across its origin market. Adding choices reduces the share of an unchanged existing destination through the Huff denominator. Relative odds between two unchanged destinations remain constant for a given origin. This proportional substitution assumption helps explain the broad decline, but cannot represent a change in train routes or transfer behaviour.
+
+### Explore the scenario
+
+```{r}
+#| label: th3-future-interactive
+x <- main_scenario
+future_palette <- colorNumeric("YlGnBu", domain = x$future)
+change_palette <- colorNumeric(c("#2a6894", "#f4f4f4", "#b53d5a"),
+  domain = c(-max(abs(x$change)), max(abs(x$change))))
+future_popup <- paste0("<b>", htmltools::htmlEscape(x$station_name), "</b><br>",
+  htmltools::htmlEscape(x$scenario_group), "<br>Baseline estimate: ", fmt(x$baseline),
+  "<br>Expanded estimate: ", fmt(x$future), "<br>Change: ", fmt(x$change),
+  "<br>Monthly weekday arrivals, fixed demand scenario")
+leaflet(x, height = 520) |>
+  addProviderTiles(providers$CartoDB.Positron) |>
+  addCircleMarkers(lng = ~longitude, lat = ~latitude, radius = 6, color = ~future_palette(future),
+    fillOpacity = 0.85, weight = 1, popup = future_popup, group = "Expanded arrivals") |>
+  addCircleMarkers(lng = ~longitude, lat = ~latitude, radius = 6, color = ~change_palette(change),
+    fillOpacity = 0.85, weight = 1, popup = future_popup, group = "Change from baseline") |>
+  addLayersControl(baseGroups = c("Expanded arrivals", "Change from baseline"),
+    options = layersControlOptions(collapsed = FALSE)) |>
+  hideGroup("Change from baseline") |>
+  addLegend(pal = future_palette, values = ~future, group = "Expanded arrivals", title = "Scenario arrivals") |>
+  addLegend(pal = change_palette, values = ~change, group = "Change from baseline", title = "Change in arrivals")
+```
+
+The two layers share the same station estimates as the tables and static maps. Selecting a station shows its baseline, scenario estimate and difference together. The colour scale changes with the selected layer.
+
+## Value added analysis: access to stations
+
+### Does a high ridership allocation imply a large access gain?
+
+The ridership model starts at existing boarding stations. It cannot tell us whether a new site brings nearby housing closer to rail. I therefore add a separate geographical accessibility comparison, building on Chapter 17. It asks where the expanded network reduces the distance from existing HDB buildings to their nearest station.
+
+I use `st_nearest_feature()` to identify each building's closest station, then `st_distance(..., by_element = TRUE)` to measure the distance in EPSG:3414. The same 13,436 building points enter both scenarios. Coverage is the number within 500, 800 or 1,000 metres. Improvements cannot be negative because every existing station remains available.
+
+```{r}
+#| label: th3-accessibility-method
+building_points <- analysis$hdb_points
+existing_sites <- analysis$sites[match(analysis$stations$station_id, analysis$sites$station_id), ]
+nearest_before <- st_nearest_feature(building_points, existing_sites)
+distance_before <- st_distance(building_points, existing_sites[nearest_before, ], by_element = TRUE)
+nearest_after <- st_nearest_feature(building_points, analysis$sites)
+distance_after <- st_distance(building_points, analysis$sites[nearest_after, ], by_element = TRUE)
+stopifnot(all(as.numeric(distance_after) <= as.numeric(distance_before) + 1e-6))
+kable(extensions$access_summary, caption = "Building coverage with the same inputs and three distance thresholds")
+```
+
+At 800 metres, coverage rises from `r pct(access800$baseline / access800$total_buildings)` to `r pct(access800$expanded / access800$total_buildings)`. That is `r fmt(access800$newly_covered)` additional building records and `r sprintf("%.1f", 100 * access800$newly_covered / access800$total_buildings)` percentage points. The increase remains positive at 500 and 1,000 metres, although its size changes. This makes the direction less dependent on choosing exactly 800 metres.
+
+```{r}
+#| label: th3-accessibility-maps
+#| fig-width: 12
+#| fig-height: 4.5
+#| fig-cap: "Nearest station distance before and after expansion, followed by distance reduction. The first two panels use identical colour limits."
+th3_plot_access(res)
+```
+
+The western region contains `r fmt(extensions$access_regions[region == "WEST REGION", newly_covered])` of the buildings newly within 800 metres, followed by `r fmt(extensions$access_regions[region == "EAST REGION", newly_covered])` in the east. The north has no gains in this particular JRL and CRL Phase 1 scenario. This is a geographic distribution of changes in the current building layer, not a claim about all future housing or access needs.
+
+```{r}
+#| label: th3-accessibility-comparison
+#| fig-height: 5
+#| fig-cap: "Access coverage across thresholds and its relationship to the main new station ridership estimates."
+th3_plot_access_detail(res)
+```
+
+Pasir Ris East brings the largest number of building records newly inside 800 metres (`r extensions$access_stations[station_name == "Pasir Ris East", newly_covered]`), while Serangoon North has the largest main scenario arrivals allocation. The rankings answer different questions. A station with a modest ridership estimate can still improve geographic access, so the ridership ranking alone should not set priorities for station entrances or local access improvements.
+
+```{r}
+#| label: th3-accessibility-regions
+kable(extensions$access_regions, digits = 1, caption = "Access changes by planning region")
+```
+
+**Limits.** Each building counts once, regardless of floor area or residents. The HDB layer also includes nonresidential structures. The points are inside building footprints, not entrances. Straight line distance omits roads, crossings, fences and step free routes. Thus 800 metres is a comparison threshold, not a verified walking catchment. The additional analysis identifies locations for further checks rather than estimating passenger numbers or social equity.
+
+## Robustness and remaining spatial error
+
+### How much do assumptions change the conclusion?
+
+I hold origin demand fixed and compare five MCI assumptions. The main case uses the fitted coefficients. Two cases change the magnitude of distance decay by 25%. Two change the overall attraction score of new sites to 0.5 or 1.5 times the main value. These are transparent stress tests, not fitted alternatives or statistical confidence intervals. I also show calibrated Huff to test dependence on the attraction specification.
+
+```{r}
+#| label: th3-sensitivity-results
+kable(extensions$assumptions, digits = 2)
+kable(extensions$sensitivity[, .(assumption, new_share_pct = 100 * new_share,
+  upgraded_change, largest_new_site)], digits = 2)
+```
+
+Across the five MCI assumptions, the new site share ranges from `r pct(min(extensions$sensitivity[assumption != "Calibrated Huff", new_share]))` to `r pct(max(extensions$sensitivity[assumption != "Calibrated Huff", new_share]))`. The top new site also changes. Calibrated Huff gives aggregate losses at the seven upgraded interchanges, whereas MCI gives gains because it includes line count. Therefore the sign of interchange impact is model dependent and should not be presented as a firm prediction.
+
+```{r}
+#| label: th3-sensitivity-plot
+#| fig-height: 5.5
+#| fig-cap: "Assumption sensitivity. The points are main MCI estimates and the ranges span five chosen MCI cases, not confidence intervals."
+th3_plot_sensitivity(res)
+```
+
+Changes in the new site attraction assumption produce a wider range than the tested distance changes. This directs the next data collection effort towards the activity and service expected around proposed stations, such as jobs, retail and bus frequency. The present dataset cannot identify their future values, so I keep those assumptions visible rather than adding invented observations.
+
+### Is the remaining error spatially patterned?
+
+I test the log ratio `log1p(observed) - log1p(predicted)` at the 184 existing stations. It describes proportional underprediction and overprediction without letting only the largest station totals determine the result. Following Chapters 8 and 9, I use symmetric nearest neighbour links, row standardised weights and 999 permutations. I repeat the test with 6, 8 and 10 neighbours. These are exploratory diagnostics on the evaluated model, not another independent test set.
+
+```{r}
+#| label: th3-residual-spatial-check
+xy <- as.matrix(models$test_stations[, .(x, y)])
+nb <- spdep::knn2nb(spdep::knearneigh(xy, k = 8), sym = TRUE)
+weights <- spdep::nb2listw(nb, style = "W")
+residual_ratio <- log1p(models$test_stations$observed) - log1p(models$test_stations$predicted)
+set.seed(20261114)
+spdep::moran.mc(residual_ratio, weights, nsim = 999, alternative = "greater")
+kable(extensions$spatial_diagnostics, digits = 3)
+```
+
+Moran's I is positive across all three neighbour settings, with permutation p values of 0.001. The October residual map therefore deserves attention beyond its individual large errors. Missing geographic factors may affect nearby stations together. This supports caution about using the model for local capacity decisions, but does not establish which omitted variable causes the pattern.
+
+## Conclusions and planning implications
+
+The selected MCI model gives new sites about 11.0% of fixed demand in the main scenario. It also increases allocation to the seven upgraded interchanges. Yet October station WAPE is 49.5%, the residuals are spatially patterned and the interchange result changes under Huff. These estimates are suitable for comparing stated assumptions, not setting service capacity on their own.
+
+The accessibility comparison supplies a separate planning result: 1,320 existing HDB building records become newly within 800 metres of a station. The largest regional gain is in the west. Pasir Ris East leads in newly covered buildings, while Serangoon North leads the main arrival allocation. Both access gains and potential demand deserve attention when prioritising site visits.
+
+For public safety, the results point to locations for reviewing crossings, pedestrian routes, entrance access and crowd management. The estimated interchange gains make Hougang and Ang Mo Kio candidates for more detailed checks. However, monthly destination arrivals do not reveal peak simultaneous occupancy, transfer volumes or station capacity. The analysis cannot demonstrate crowding, accident reduction or a safety benefit. Those decisions need route based walking analysis, peak flow measurements and site capacity information.
+
+Further work should obtain network travel times, employment and service frequency measures, then validate again before making stronger ridership claims. Forecasting total future demand also requires new origins and an explicit population or land use scenario. The [Executive Summary](take-home_ex03_slides.qmd) presents the main findings and their limits.
 
 ## References and reproducibility
 
@@ -431,6 +626,8 @@ The next checkpoint will add the JRL and CRL predictions, changes at existing st
 -   [Course Chapter 15: Processing and Visualising Flow Data](https://r4gdsa.netlify.app/chap15.html).
 -   [Course Chapter 16: Calibrating Spatial Interaction Models with R](https://r4gdsa.netlify.app/chap16.html), especially sections 16.8.6 and 16.8.9.
 -   [Course Chapter 18: Huff market area analysis](https://r4gdsa.netlify.app/chap18.html).
+-   [Course Chapter 17: Modelling Geographical Accessibility](https://r4gdsa.netlify.app/chap17.html).
+-   [Course Chapter 8: Spatial Weights](https://r4gdsa.netlify.app/chap08.html) and [Chapter 9: Global Spatial Autocorrelation](https://r4gdsa.netlify.app/chap09.html).
 -   [LTA DataMall dynamic datasets](https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html) and [API documentation](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf).
 -   [LTA static datasets](https://datamall.lta.gov.sg/content/datamall/en/static-data.html).
 -   [HDB Existing Building](https://data.gov.sg/datasets/d_16b157c52ed637edd6ba1232e026258d/view).
@@ -440,18 +637,7 @@ AI assistance was used for code organisation, debugging and drafting explanation
 
 ```{r}
 #| label: th3-package-versions
-packages <- c("stats", "sf", "data.table", "ggplot2", "patchwork", "leaflet", "knitr")
+packages <- c("stats", "sf", "data.table", "ggplot2", "patchwork", "leaflet", "knitr", "DT", "spdep", "ggrepel")
 kable(data.table(package = packages,
   version = vapply(packages, function(x) as.character(packageVersion(x)), character(1))))
-```
-
-### Complete preparation and modelling code
-
-```{r}
-#| label: th3-source-code
-#| echo: false
-#| results: asis
-cat("```r\n", paste(readLines("scripts/takehome3_analysis.R"), collapse = "\n"), "\n```\n")
-cat("\n#### Restoring the compressed source files\n\n```r\n",
-    paste(readLines("scripts/takehome3_io.R"), collapse = "\n"), "\n```\n")
 ```

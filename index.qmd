@@ -23,4 +23,5 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 -   [Executive Summary 1](take-home_ex01_slides.qmd)
 -   [Technical Report 2: Geospatial Analytics for Peace in Myanmar](take-home_ex02.qmd)
 -   [Executive Summary 2](take-home_ex02_slides.qmd)
--   [Technical Report 3: Urban Rail Station Choice (checkpoint)](take-home_ex03.qmd)
+-   [Technical Report 3: Urban Rail Station Choice and Accessibility](take-home_ex03.qmd)
+-   [Executive Summary 3](take-home_ex03_slides.qmd)
