@@ -2,7 +2,7 @@
 title: "Singapore Rail Expansion"
 subtitle: "Station choice and access around the proposed JRL and CRL"
 author: "Ziying Zhou"
-date: "2026-11-14"
+date: "2026-11-12"
 format:
   revealjs:
     theme: simple
@@ -42,28 +42,29 @@ theme_set(th3_theme(14))
 
 ## Contents
 
-:::: {.columns}
+::::: columns
 ::: {.column width="48%"}
-1. Research question and network
-2. Observed travel pattern
-3. Analytical approach
-4. Model validation
-5. Future network scenario
+1.  Research question and network
+2.  Observed travel pattern
+3.  Analytical approach
+4.  Model validation
+5.  Future network scenario
 :::
+
 ::: {.column width="48%"}
-6. Changes at individual stations
-7. Existing station markets
-8. Added analysis: geographic access
-9. Assumption sensitivity
+6.  Changes at individual stations
+7.  Existing station markets
+8.  Added analysis: geographic access
+9.  Assumption sensitivity
 10. Planning and public safety
 :::
-::::
+:::::
 
 [Technical report](take-home_ex03.qmd)
 
 ## Research question and network
 
-:::: {.columns}
+::::: columns
 ::: {.column width="38%"}
 **How might JRL and CRL change destination choice and access to stations?**
 
@@ -75,6 +76,7 @@ The expanded choice set has **213 destinations**.
 
 Origins remain the existing boarding stations. The scenario redistributes their recorded trips.
 :::
+
 ::: {.column width="60%"}
 ```{r}
 #| label: th3-slide-study
@@ -83,11 +85,10 @@ Origins remain the existing boarding stations. The scenario redistributes their 
 th3_plot_study(res)
 ```
 :::
-::::
+:::::
 
 ::: notes
-Source: LTA DataMall and the station coordinate repository linked in the assignment. The report records the pinned repository revision and the station reconciliation. The core scope excludes Forest Hill and later CRL phases. An interchange upgrade is not a new duplicate station.
-https://isss626-ay2026-27aug.netlify.app/take-home_ex03
+Source: LTA DataMall and the station coordinate repository linked in the assignment. The report records the pinned repository revision and the station reconciliation. The core scope excludes Forest Hill and later CRL phases. An interchange upgrade is not a new duplicate station. https://isss626-ay2026-27aug.netlify.app/take-home_ex03
 :::
 
 ## Observed travel pattern
@@ -104,43 +105,41 @@ th3_plot_observed(res)
 Station demand varies widely. The monthly departure profiles give context for using weekdays as one consistent target.
 
 ::: notes
-Source: the project's six LTA ridership snapshots and exact quality checks. The three OD files contain 2,704,578 raw rows. Separate tap in and tap out data do not reconcile exactly with OD totals, so every model target and origin total comes from the OD source.
-https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html
+Source: the project's six LTA ridership snapshots and exact quality checks. The three OD files contain 2,704,578 raw rows. Separate tap in and tap out data do not reconcile exactly with OD totals, so every model target and origin total comes from the OD source. https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html
 :::
 
 ## Analytical approach
 
-:::: {.columns}
+::::: columns
 ::: {.column width="50%"}
 **Course methods**
 
-- Chapter 15: prepare station OD tables.
-- Chapter 16: origin constrained Poisson `glm()`.
-- Chapter 18: Huff and MCI choice probabilities.
+-   Chapter 15: prepare station OD tables.
+-   Chapter 16: origin constrained Poisson `glm()`.
+-   Chapter 18: Huff and MCI choice probabilities.
 
 $$\widehat T_{ij}=M_i\frac{\exp(\beta X_{ij})}{\sum_{k\ne i}\exp(\beta X_{ik})}$$
 
 Predictors: straight line distance, bus stops within 800 m, line count, HDB footprint and LRT status.
 :::
+
 ::: {.column width="47%"}
 **Evaluation design**
 
-| Period | Role |
-| --- | --- |
-| August | Fit coefficients |
+| Period    | Role                        |
+|-----------|-----------------------------|
+| August    | Fit coefficients            |
 | September | Select the structural model |
-| October | Evaluate fixed coefficients |
+| October   | Evaluate fixed coefficients |
 
 The baseline and future scenarios share October origin totals.
 
 **Additional analysis:** nearest station accessibility, assumption sensitivity and spatial residual checks.
 :::
-::::
+:::::
 
 ::: notes
-Origin totals are supplied for each evaluation month, so the test measures conditional allocation rather than forecasting unknown network demand. The alternative historical OD benchmark has no observations for unopened destinations.
-https://r4gdsa.netlify.app/chap16.html
-https://r4gdsa.netlify.app/chap18.html
+Origin totals are supplied for each evaluation month, so the test measures conditional allocation rather than forecasting unknown network demand. The alternative historical OD benchmark has no observations for unopened destinations. https://r4gdsa.netlify.app/chap16.html https://r4gdsa.netlify.app/chap18.html
 :::
 
 ## Model validation
@@ -224,14 +223,12 @@ th3_plot_access(res)
 
 **Pasir Ris East** leads in newly covered buildings (219), while **Serangoon North** leads the arrival allocation. Demand and access rankings answer different planning questions.
 
-::: {.caption}
+::: caption
 Straight line distances to station points. Building counts include nonresidential HDB structures.
 :::
 
 ::: notes
-Source: HDB Existing Building snapshot, the same existing and proposed station coordinates, and accessibility_thresholds.csv. Method follows the nearest facility and threshold accessibility ideas in Chapter 17. Distances are straight lines in EPSG:3414. Counts include nonresidential HDB structures and cannot be interpreted as people, households or verified walking access.
-https://r4gdsa.netlify.app/chap17.html
-https://data.gov.sg/datasets/d_16b157c52ed637edd6ba1232e026258d/view
+Source: HDB Existing Building snapshot, the same existing and proposed station coordinates, and accessibility_thresholds.csv. Method follows the nearest facility and threshold accessibility ideas in Chapter 17. Distances are straight lines in EPSG:3414. Counts include nonresidential HDB structures and cannot be interpreted as people, households or verified walking access. https://r4gdsa.netlify.app/chap17.html https://data.gov.sg/datasets/d_16b157c52ed637edd6ba1232e026258d/view
 :::
 
 ## Assumption sensitivity
@@ -253,26 +250,27 @@ Source: scenario_sensitivity.csv and new_station_sensitivity_ranges.csv. The MCI
 
 ## Planning and public safety
 
-:::: {.columns}
+::::: columns
 ::: {.column width="48%"}
 **Evidence for follow up**
 
-- Pasir Ris East and western sites merit checks on crossings, entrances and step free routes because of their access gains.
-- Hougang and Ang Mo Kio merit detailed interchange flow checks under the MCI scenario.
-- Both passenger allocation and local access matter when comparing sites.
+-   Pasir Ris East and western sites merit checks on crossings, entrances and step free routes because of their access gains.
+-   Hougang and Ang Mo Kio merit detailed interchange flow checks under the MCI scenario.
+-   Both passenger allocation and local access matter when comparing sites.
 
 **The study does not establish a reduction in accidents or crowding.**
 :::
+
 ::: {.column width="48%"}
 **Limits that affect decisions**
 
-- October error remains high. Residual Moran's I is about 0.11 to 0.13 across tested neighbours, indicating spatially patterned error.
-- Monthly arrivals cannot reveal peak occupancy or platform capacity.
-- New housing, new origins, walking routes and future operating plans need additional data.
+-   October error remains high. Residual Moran's I is about 0.11 to 0.13 across tested neighbours, indicating spatially patterned error.
+-   Monthly arrivals cannot reveal peak occupancy or platform capacity.
+-   New housing, new origins, walking routes and future operating plans need additional data.
 
 [Full results and assumptions](take-home_ex03.qmd)
 :::
-::::
+:::::
 
 ::: notes
 Source: residual_moran.csv, future_station_scenario.csv and the accessibility comparison. Symmetric nearest neighbour weights, k=6,8,10, row standardisation and 999 permutations yield p=0.001 in each exploratory check. These diagnostics are not an independent validation set. Public safety recommendations are proposals for further assessment, not evidence of safety outcomes. AI assisted code organisation and drafting. The author should review the analysis and conclusions before submission.

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ziying Zhou">
-<meta name="dcterms.date" content="2026-11-14">
+<meta name="dcterms.date" content="2026-11-05">
 
 <title>Take home Exercise 3: Geospatial Analytics for Urban Sustainability – ISSS626geo</title>
 <style>
@@ -366,7 +366,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 14, 2026</p>
+      <p class="date">November 5, 2026</p>
     </div>
   </div>
   
@@ -1074,13 +1074,13 @@ window.Quarto = {
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">formula</span>(models<span class="sc">$</span>huff)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>trips ~ factor(origin_id) + log_distance + log_bus
-&lt;environment: 0x152fc7ed0&gt;</code></pre>
+&lt;environment: 0x115766cf0&gt;</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">formula</span>(models<span class="sc">$</span>mci)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>trips ~ factor(origin_id) + log_distance + log_bus + log_lines + 
     log_hdb + is_lrt
-&lt;environment: 0x152fc7ed0&gt;</code></pre>
+&lt;environment: 0x115766cf0&gt;</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(models<span class="sc">$</span>coefficients, <span class="at">digits =</span> <span class="dv">3</span>,</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="st">"August attraction and distance coefficients; origin intercepts omitted"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2005,18 +2005,17 @@ alternative hypothesis: greater</code></pre>
 <section id="references-and-reproducibility" class="level2">
 <h2 class="anchored" data-anchor-id="references-and-reproducibility">References and reproducibility</h2>
 <ul>
-<li><a href="https://isss626-ay2026-27aug.netlify.app/take-home_ex03">Take-home Exercise 3 brief</a>.</li>
-<li><a href="https://r4gdsa.netlify.app/chap15.html">Course Chapter 15: Processing and Visualising Flow Data</a>.</li>
-<li><a href="https://r4gdsa.netlify.app/chap16.html">Course Chapter 16: Calibrating Spatial Interaction Models with R</a>, especially sections 16.8.6 and 16.8.9.</li>
-<li><a href="https://r4gdsa.netlify.app/chap18.html">Course Chapter 18: Huff market area analysis</a>.</li>
-<li><a href="https://r4gdsa.netlify.app/chap17.html">Course Chapter 17: Modelling Geographical Accessibility</a>.</li>
-<li><a href="https://r4gdsa.netlify.app/chap08.html">Course Chapter 8: Spatial Weights</a> and <a href="https://r4gdsa.netlify.app/chap09.html">Chapter 9: Global Spatial Autocorrelation</a>.</li>
-<li><a href="https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html">LTA DataMall dynamic datasets</a> and <a href="https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf">API documentation</a>.</li>
-<li><a href="https://datamall.lta.gov.sg/content/datamall/en/static-data.html">LTA static datasets</a>.</li>
-<li><a href="https://data.gov.sg/datasets/d_16b157c52ed637edd6ba1232e026258d/view">HDB Existing Building</a>.</li>
-<li><a href="https://github.com/elliotwutingfeng/singapore_train_station_coordinates">Station coordinates provided by the assignment</a>, revision recorded in the data manifest.</li>
+<li><p><a href="https://isss626-ay2026-27aug.netlify.app/take-home_ex03">Take-home Exercise 3 brief</a>.</p></li>
+<li><p><a href="https://r4gdsa.netlify.app/chap15.html">Course Chapter 15: Processing and Visualising Flow Data</a>.</p></li>
+<li><p><a href="https://r4gdsa.netlify.app/chap16.html">Course Chapter 16: Calibrating Spatial Interaction Models with R</a>, especially sections 16.8.6 and 16.8.9.</p></li>
+<li><p><a href="https://r4gdsa.netlify.app/chap18.html">Course Chapter 18: Huff market area analysis</a>.</p></li>
+<li><p><a href="https://r4gdsa.netlify.app/chap17.html">Course Chapter 17: Modelling Geographical Accessibility</a>.</p></li>
+<li><p><a href="https://r4gdsa.netlify.app/chap08.html">Course Chapter 8: Spatial Weights</a> and <a href="https://r4gdsa.netlify.app/chap09.html">Chapter 9: Global Spatial Autocorrelation</a>.</p></li>
+<li><p><a href="https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html">LTA DataMall dynamic datasets</a> and <a href="https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf">API documentation</a>.</p></li>
+<li><p><a href="https://datamall.lta.gov.sg/content/datamall/en/static-data.html">LTA static datasets</a>.</p></li>
+<li><p><a href="https://data.gov.sg/datasets/d_16b157c52ed637edd6ba1232e026258d/view">HDB Existing Building</a>.</p></li>
+<li><p><a href="https://github.com/elliotwutingfeng/singapore_train_station_coordinates">Station coordinates provided by the assignment</a>, revision recorded in the data manifest.</p></li>
 </ul>
-<p>AI assistance was used for code organisation, debugging and drafting explanations. Data provenance, transformations and numerical checks are recorded in the project. The final submission still requires the author’s review of the analysis and conclusions.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>packages <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"stats"</span>, <span class="st">"sf"</span>, <span class="st">"data.table"</span>, <span class="st">"ggplot2"</span>, <span class="st">"patchwork"</span>, <span class="st">"leaflet"</span>, <span class="st">"knitr"</span>, <span class="st">"DT"</span>, <span class="st">"spdep"</span>, <span class="st">"ggrepel"</span>)</span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">data.table</span>(<span class="at">package =</span> packages,</span>

@@ -2,7 +2,7 @@
 title: "Take home Exercise 3: Geospatial Analytics for Urban Sustainability"
 subtitle: "Station choice and the proposed Jurong Region and Cross Island lines"
 author: "Ziying Zhou"
-date: "2026-11-14"
+date: "2026-11-5"
 date-modified: today
 execute:
   echo: true
@@ -623,17 +623,24 @@ Further work should obtain network travel times, employment and service frequenc
 ## References and reproducibility
 
 -   [Take-home Exercise 3 brief](https://isss626-ay2026-27aug.netlify.app/take-home_ex03).
--   [Course Chapter 15: Processing and Visualising Flow Data](https://r4gdsa.netlify.app/chap15.html).
--   [Course Chapter 16: Calibrating Spatial Interaction Models with R](https://r4gdsa.netlify.app/chap16.html), especially sections 16.8.6 and 16.8.9.
--   [Course Chapter 18: Huff market area analysis](https://r4gdsa.netlify.app/chap18.html).
--   [Course Chapter 17: Modelling Geographical Accessibility](https://r4gdsa.netlify.app/chap17.html).
--   [Course Chapter 8: Spatial Weights](https://r4gdsa.netlify.app/chap08.html) and [Chapter 9: Global Spatial Autocorrelation](https://r4gdsa.netlify.app/chap09.html).
--   [LTA DataMall dynamic datasets](https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html) and [API documentation](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf).
--   [LTA static datasets](https://datamall.lta.gov.sg/content/datamall/en/static-data.html).
--   [HDB Existing Building](https://data.gov.sg/datasets/d_16b157c52ed637edd6ba1232e026258d/view).
--   [Station coordinates provided by the assignment](https://github.com/elliotwutingfeng/singapore_train_station_coordinates), revision recorded in the data manifest.
 
-AI assistance was used for code organisation, debugging and drafting explanations. Data provenance, transformations and numerical checks are recorded in the project. The final submission still requires the author's review of the analysis and conclusions.
+-   [Course Chapter 15: Processing and Visualising Flow Data](https://r4gdsa.netlify.app/chap15.html).
+
+-   [Course Chapter 16: Calibrating Spatial Interaction Models with R](https://r4gdsa.netlify.app/chap16.html), especially sections 16.8.6 and 16.8.9.
+
+-   [Course Chapter 18: Huff market area analysis](https://r4gdsa.netlify.app/chap18.html).
+
+-   [Course Chapter 17: Modelling Geographical Accessibility](https://r4gdsa.netlify.app/chap17.html).
+
+-   [Course Chapter 8: Spatial Weights](https://r4gdsa.netlify.app/chap08.html) and [Chapter 9: Global Spatial Autocorrelation](https://r4gdsa.netlify.app/chap09.html).
+
+-   [LTA DataMall dynamic datasets](https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html) and [API documentation](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf).
+
+-   [LTA static datasets](https://datamall.lta.gov.sg/content/datamall/en/static-data.html).
+
+-   [HDB Existing Building](https://data.gov.sg/datasets/d_16b157c52ed637edd6ba1232e026258d/view).
+
+-   [Station coordinates provided by the assignment](https://github.com/elliotwutingfeng/singapore_train_station_coordinates), revision recorded in the data manifest.
 
 ```{r}
 #| label: th3-package-versions
