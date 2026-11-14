@@ -15,6 +15,7 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 -   [Hands-on Exercise 7: Modelling Geographical Accessibility](hands-on_ex07.qmd)
 -   [Hands-on Exercise 8: Market Area Analysis using the Huff Model](hands-on_ex08.qmd)
 -   [Hands-on Exercise 9: Calibrating Hedonic Pricing Model with GWR](hands-on_ex09.qmd)
+-   [Hands-on Exercise 10: Geographically Weighted Predictive Models](hands-on_ex10.qmd)
 
 ## Take home Exercise
 
@@ -22,3 +23,4 @@ This website records the hands-on exercises for ISSS626 Geospatial Data Science 
 -   [Executive Summary 1](take-home_ex01_slides.qmd)
 -   [Technical Report 2: Geospatial Analytics for Peace in Myanmar](take-home_ex02.qmd)
 -   [Executive Summary 2](take-home_ex02_slides.qmd)
+-   [Technical Report 3: Urban Rail Station Choice (checkpoint)](take-home_ex03.qmd)

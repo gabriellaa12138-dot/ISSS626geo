@@ -3,7 +3,6 @@ title: "In-class Exercise 6"
 format: html
 ---
 
-
 ```{r}
 pacman::p_load(sf, rgeoda, tidyverse)
 ```
